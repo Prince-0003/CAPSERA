@@ -425,10 +425,7 @@ button { font: inherit; cursor: pointer; }
 .commerce-content { padding-bottom: 64px; }
 
 .account-page {
-  background-image: url("/img/account-background.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  padding-top: 78px;
   background-color: #edf5fb;
 }
 .account-page::before {
@@ -437,16 +434,22 @@ button { font: inherit; cursor: pointer; }
 .account-page-shell {
   position: relative;
   z-index: 1;
-  width: min(100%, 1240px);
+  width: 100%;
+  min-height: calc(100vh - 92px);
   margin: 0 auto;
-  padding: 0 24px 64px;
+  padding: 52px 24px 84px;
+  background-image: url("/img/account-background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 .account-dashboard {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 28px;
   align-items: start;
-  padding-top: 18px;
+  width: min(100%, 1192px);
+  margin: 0 auto;
 }
 .account-sidebar {
   position: sticky;
@@ -657,12 +660,30 @@ button { font: inherit; cursor: pointer; }
 }
 .account-signin-prompt {
   width: min(100%, 760px);
-  margin: 0 auto;
-  padding: 40px 24px 48px;
-  border: 1px solid rgba(16, 29, 53, 0.08);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 18px 32px rgba(15, 30, 53, 0.08);
+  margin: 40px auto 0;
+  padding: 52px clamp(24px, 6vw, 76px) 62px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 26px;
+  background: rgba(245, 246, 248, 0.78);
+  box-shadow: 0 24px 55px rgba(16, 29, 53, 0.18);
+  backdrop-filter: blur(12px);
+  text-align: center;
+}
+.account-prompt-icon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 25px;
+  place-items: center;
+  border: 1px solid rgba(16, 29, 53, 0.1);
+  border-radius: 50%;
+  color: #315b81;
+  background: rgba(185, 216, 238, 0.8);
+}
+.account-prompt-icon svg {
+  width: 27px;
+  height: 27px;
+  stroke-width: 1.35;
 }
 .account-signin-prompt h1 {
   margin: 0;
@@ -671,10 +692,18 @@ button { font: inherit; cursor: pointer; }
   letter-spacing: -0.05em;
 }
 .account-signin-prompt .setup-notice {
-  margin-top: 18px;
+  max-width: 530px;
+  margin: 18px auto 0;
+  padding: 0;
+  border-left: 0;
+  color: #53647d;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.75;
 }
 .account-links {
   display: flex;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 22px;
@@ -704,6 +733,11 @@ button { font: inherit; cursor: pointer; }
   .account-card,
   .account-signin-prompt {
     padding: 18px 16px;
+  }
+  .account-signin-prompt {
+    margin-top: 18px;
+    padding-top: 34px;
+    padding-bottom: 40px;
   }
   .profile-list div {
     grid-template-columns: 1fr;
@@ -735,9 +769,253 @@ button { font: inherit; cursor: pointer; }
   background-image: linear-gradient(180deg, #e1edf6a8 0%, #edf5fbdf 72%, #edf5fb 100%), url("/img/file_000000008d8882119056ac29dfd8ce30.png");
   background-position: center 58%;
 }
-.checkout-page::before, .account-page::before, .order-confirmation-page::before {
+.checkout-page::before, .order-confirmation-page::before {
   background-image: linear-gradient(180deg, #dcebf6b8 0%, #eaf3f9e3 72%, #edf5fb 100%), url("/img/file_000000000f0082088e8889a15c361d6b.png");
   background-position: center 62%;
+}
+.signup-page {
+  min-height: 100vh;
+  padding-top: 0;
+  background: var(--ice);
+}
+.signup-page::before {
+  display: none;
+}
+.signup-stage {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100vh - 78px);
+  padding: 122px 5.5% 78px;
+  background-image: url("/img/account-background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.signup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 520px);
+  align-items: center;
+  gap: clamp(44px, 8vw, 132px);
+  width: min(100%, 1190px);
+  min-height: min(700px, calc(100vh - 200px));
+  margin: 0 auto;
+}
+.signup-welcome {
+  max-width: 550px;
+}
+.signup-eyebrow,
+.signup-card-label {
+  margin: 0 0 16px;
+  color: #a17c32;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .3em;
+}
+.signup-welcome h1 {
+  margin: 0;
+  color: var(--navy);
+  font: 400 clamp(42px, 5.6vw, 76px)/.98 Georgia, "Times New Roman", serif;
+  letter-spacing: -.045em;
+}
+.signup-tagline {
+  max-width: 440px;
+  margin: 24px 0 36px;
+  color: #203b60;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.signup-benefits {
+  display: grid;
+  gap: 17px;
+}
+.signup-benefit {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--navy);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.signup-benefit-icon {
+  display: grid;
+  width: 37px;
+  height: 37px;
+  flex: 0 0 37px;
+  place-items: center;
+  border: 1px solid rgba(16, 29, 53, .12);
+  border-radius: 50%;
+  color: #315b81;
+  background: rgba(185, 216, 238, .8);
+}
+.signup-benefit-icon svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.45;
+}
+.signup-benefit strong,
+.signup-benefit small {
+  display: block;
+}
+.signup-benefit strong {
+  font-size: 12px;
+}
+.signup-benefit small {
+  margin-top: 2px;
+  color: #53647d;
+  font-size: 11px;
+}
+.signup-card {
+  width: 100%;
+  padding: clamp(30px, 4vw, 48px);
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 26px;
+  background: rgba(245, 246, 248, .84);
+  box-shadow: 0 24px 55px rgba(16, 29, 53, .18);
+  backdrop-filter: blur(12px);
+}
+.signup-card-label {
+  margin-bottom: 12px;
+}
+.signup-card h2 {
+  margin: 0;
+  color: var(--navy);
+  font: 400 clamp(31px, 4vw, 43px)/1.1 Georgia, "Times New Roman", serif;
+  letter-spacing: -.04em;
+}
+.signup-card-intro {
+  margin: 14px 0 0;
+  color: #53647d;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.signup-card .service-form {
+  gap: 13px;
+  margin-top: 24px;
+}
+.signup-card .field-label {
+  color: #304766;
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.signup-card .form-field {
+  gap: 7px;
+}
+.signup-card .service-form input:not([type="checkbox"]) {
+  height: 47px;
+  padding: 0 44px;
+  border: 1px solid rgba(16, 29, 53, .14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .74);
+}
+.signup-card .service-form input[name="password"],
+.signup-card .service-form input[name="confirmPassword"] {
+  padding-right: 45px;
+}
+.signup-card .service-form .button {
+  width: 100%;
+  min-height: 49px;
+  margin-top: 4px;
+  border-radius: 10px;
+}
+.signup-card .service-form .button svg {
+  width: 16px;
+  height: 16px;
+}
+.signup-terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 2px;
+  color: #53647d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.signup-terms input {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  margin: 1px 0 0;
+  accent-color: var(--navy);
+}
+.signup-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0 18px;
+  color: #7d8998;
+  font-size: 9px;
+  letter-spacing: .2em;
+}
+.signup-divider::before,
+.signup-divider::after {
+  height: 1px;
+  flex: 1;
+  content: "";
+  background: rgba(16, 29, 53, .14);
+}
+.signup-account-prompt {
+  margin: 0;
+  color: #53647d;
+  font-size: 12px;
+  text-align: center;
+}
+.signup-account-prompt a {
+  color: #9a7836;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 1000px) {
+  .signup-stage {
+    padding-right: 4%;
+    padding-left: 4%;
+  }
+  .signup-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(350px, 440px);
+    gap: clamp(28px, 5vw, 70px);
+  }
+  .signup-card {
+    padding: 32px;
+  }
+}
+@media (max-width: 760px) {
+  .signup-stage {
+    min-height: auto;
+    padding: 108px 20px 54px;
+    background-image: url("/img/account-background.png");
+  }
+  .signup-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 34px;
+    min-height: 0;
+  }
+  .signup-welcome {
+    max-width: 560px;
+  }
+  .signup-welcome h1 {
+    font-size: clamp(43px, 12vw, 64px);
+  }
+  .signup-tagline {
+    margin: 16px 0 25px;
+  }
+  .signup-card {
+    max-width: 560px;
+    align-self: center;
+    padding: 28px 22px;
+  }
+}
+@media (max-width: 420px) {
+  .signup-stage {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+  .signup-card {
+    padding: 25px 18px;
+    border-radius: 20px;
+  }
 }
 .signin-page {
   min-height: 100vh;
@@ -1089,4 +1367,5 @@ button { font: inherit; cursor: pointer; }
   .cart-item { padding: 14px; }
   .cart-item-info h2 { font-size: 17px; }
   .commerce-page { padding-top: 82px; }
+  .account-page { padding-top: 78px; }
 }

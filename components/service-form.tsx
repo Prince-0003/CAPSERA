@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 type FormKind = "contact" | "signin" | "signup" | "forgot-password" | "checkout";
@@ -64,7 +64,7 @@ export function ServiceForm({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -136,27 +136,28 @@ export function ServiceForm({
           {field.name === "message" ? (
             <textarea id={`${kind}-${field.name}`} name={field.name} required minLength={10} maxLength={4000} rows={5} />
           ) : (
-            <div className={kind === "signin" ? "input-shell" : undefined}>
-              {kind === "signin" && field.name === "email" && <Mail className="input-icon" aria-hidden="true" />}
-              {kind === "signin" && field.name === "password" && <LockKeyhole className="input-icon" aria-hidden="true" />}
+            <div className={kind === "signin" || kind === "signup" ? "input-shell" : undefined}>
+              {(kind === "signin" || kind === "signup") && field.name === "name" && <UserRound className="input-icon" aria-hidden="true" />}
+              {(kind === "signin" || kind === "signup") && field.name === "email" && <Mail className="input-icon" aria-hidden="true" />}
+              {(kind === "signin" || kind === "signup") && (field.name === "password" || field.name === "confirmPassword") && <LockKeyhole className="input-icon" aria-hidden="true" />}
               <input
                 id={`${kind}-${field.name}`}
                 name={field.name}
-                type={kind === "signin" && field.name === "password" && passwordVisible ? "text" : field.type ?? "text"}
+                type={(kind === "signin" || kind === "signup") && (field.name === "password" || field.name === "confirmPassword") && visiblePasswords[field.name] ? "text" : field.type ?? "text"}
                 required
                 autoComplete={field.autoComplete}
                 minLength={field.minLength}
                 maxLength={field.name === "password" || field.name === "confirmPassword" ? 128 : 200}
                 value={field.value}
               />
-              {kind === "signin" && field.name === "password" && (
+              {(kind === "signin" || kind === "signup") && (field.name === "password" || field.name === "confirmPassword") && (
                 <button
                   className="password-toggle"
                   type="button"
-                  aria-label={passwordVisible ? "Hide password" : "Show password"}
-                  onClick={() => setPasswordVisible((visible) => !visible)}
+                  aria-label={visiblePasswords[field.name] ? "Hide password" : "Show password"}
+                  onClick={() => setVisiblePasswords((current) => ({ ...current, [field.name]: !current[field.name] }))}
                 >
-                  {passwordVisible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                  {visiblePasswords[field.name] ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                 </button>
               )}
             </div>
@@ -170,10 +171,17 @@ export function ServiceForm({
           <span>Online payment is not yet available. I understand this is a setup-only checkout form.</span>
         </label>
       )}
+      {kind === "signup" && (
+        <label className="signup-terms">
+          <input name="terms" type="checkbox" required />
+          <span>I agree to the Terms &amp; Conditions and Privacy Policy.</span>
+        </label>
+      )}
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-status" role="status">{message}</p>}
       <button className="button button-navy" type="submit" disabled={submitting}>
         {submitting ? "Please wait…" : submitLabel}
+        {kind === "signup" && !submitting && <ArrowRight aria-hidden="true" />}
       </button>
     </form>
   );

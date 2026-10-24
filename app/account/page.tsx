@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { UserRound } from "lucide-react";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 
@@ -14,7 +15,6 @@ const navItems = [
   { id: "orders", label: "Orders" },
   { id: "addresses", label: "Addresses" },
   { id: "personal-details", label: "Personal Details" },
-  { id: "payment-methods", label: "Payment Methods" },
   { id: "wishlist", label: "Wishlist" },
   { id: "settings", label: "Settings" },
 ];
@@ -83,7 +83,7 @@ export default function AccountPage() {
               </header>
 
               <div className="account-content-grid">
-                <section className="account-card account-card-wide" id="profile-details">
+                <section className="account-card account-card-wide" id="personal-details">
                   <div className="account-card-header">
                     <h2>Profile Details</h2>
                     <a href="#personal-details">Edit</a>
@@ -180,9 +180,14 @@ export default function AccountPage() {
           </div>
         ) : (
           <section className="account-signin-prompt">
+            <div className="account-prompt-icon" aria-hidden="true">
+              <UserRound />
+            </div>
             <p className="eyebrow">YOUR CAPSÉRA ACCOUNT</p>
             <h1>My Account</h1>
-            <p className="setup-notice">You are not signed in. Create an account or sign in to access your profile.</p>
+            <p className="setup-notice">
+              Sign in to manage your profile, orders, and addresses. Access your skincare journey, track your orders, and more.
+            </p>
             <div className="account-links">
               <a className="button button-navy" href="/signin">Sign In</a>
               <a className="button button-outline" href="/signup">Create Account</a>
