@@ -1369,3 +1369,38 @@ button { font: inherit; cursor: pointer; }
   .commerce-page { padding-top: 82px; }
   .account-page { padding-top: 78px; }
 }
+
+/* Shared type scale: keep the compact premium layout while improving readability. */
+body { font-size: 16px; }
+.desktop-nav { font-size: 13px; }
+.eyebrow,
+.signup-eyebrow,
+.signup-card-label,
+.signin-eyebrow,
+.signin-card-label { font-size: 11px; }
+.button { font-size: 11px; }
+.hero-description,
+.personalize-copy > p:not(.eyebrow),
+.account-welcome-message,
+.signin-card-intro,
+.signup-card-intro { font-size: 15px; }
+.site-footer a,
+.footer-brand p { font-size: 12px; }
+.field-label { font-size: 12px; }
+.service-form input:not([type="checkbox"]),
+.service-form textarea,
+.service-form select,
+.quiz-options select { font-size: 14px; }
+.form-error,
+.form-status,
+.payment-choice,
+.form-links,
+.setup-notice { font-size: 13px; }
+.signup-benefit strong { font-size: 13px; }
+.signup-benefit small { font-size: 12px; }
+.account-nav-link,
+.account-list span,
+.settings-list span,
+.profile-list dt { font-size: 13px; }
+.account-list strong,
+.settings-list strong { font-size: 15px; }
