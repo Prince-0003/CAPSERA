@@ -5,8 +5,8 @@ export const skincareKit = {
   image: "/assets/capsera-7-step-capsules.png",
   imageAlt: "All seven CAPSÉRA skincare capsules together",
   href: "/shop/capsera-7-step-skincare-kit",
-  /** Price in minor units (paise). null until a verified price is provided; never invent one. */
-  priceMinor: null as number | null,
+  /** Official price in paise (integer minor units): ₹1,299. The single source for every price shown or calculated. */
+  priceMinor: 129900,
   currency: "INR",
   steps: [
     { number: "01", name: "Cleanse", product: "Face Wash", tone: "silver", image: "/img/Picsart_26-10-22_22-30-17-375.png" },
@@ -28,13 +28,19 @@ export function getProduct(productId: string) {
   return productId === skincareKit.id ? skincareKit : null;
 }
 
+/** Formats integer paise as rupees in en-IN style (₹1,299, ₹1,28,601); paise are shown only when there are any. */
 export function formatPrice(minor: number, currency: string = skincareKit.currency) {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(minor / 100);
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: minor % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(minor / 100);
 }
 
-/** Line total in minor units, or null while the price is not configured. Integer maths only. */
+/** Line total in paise. Integer maths only; formatting divides by 100 just for display. */
 export function lineTotalMinor(quantity: number) {
-  return skincareKit.priceMinor === null ? null : skincareKit.priceMinor * quantity;
+  return skincareKit.priceMinor * quantity;
 }
 
 export type KitStepName = (typeof skincareKit.steps)[number]["name"];

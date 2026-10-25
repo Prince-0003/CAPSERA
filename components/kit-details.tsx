@@ -11,9 +11,7 @@ export function KitDetails() {
       <p className="eyebrow">THE COMPLETE RITUAL</p>
       <h1>{skincareKit.name}</h1>
       <p>{skincareKit.description}</p>
-      <p className="shop-product-price">
-        {skincareKit.priceMinor === null ? "Price not listed" : formatPrice(skincareKit.priceMinor)}
-      </p>
+      <p className="shop-product-price">{formatPrice(skincareKit.priceMinor)}</p>
       <KitPurchasePanel />
       <p className="single-product-note">All seven capsules come together as one kit; they aren&apos;t sold separately.</p>
       <Link className="text-link" href="/shop">Back to Shop</Link>

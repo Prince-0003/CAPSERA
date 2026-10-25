@@ -2,10 +2,11 @@ import Link from "next/link";
 import { CartContents } from "@/components/cart-contents";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
+import { brandFontClassName } from "@/lib/brand-fonts";
 
 export default function CartPage() {
   return (
-    <main className="commerce-page cart-page">
+    <main className={`commerce-page cart-page ${brandFontClassName}`}>
       <SiteHeader />
       <div className="commerce-content">
         <nav className="breadcrumbs" aria-label="Breadcrumb">

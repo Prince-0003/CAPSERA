@@ -24,7 +24,9 @@ export default function SiteFooter() {
         ))}
       </nav>
       <div className="social-links" aria-label="Social media">
-        <span role="img" aria-label="Instagram"><Instagram /></span>
+        <a href="https://www.instagram.com/capsera.care/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+          <Instagram />
+        </a>
         <span role="img" aria-label="YouTube"><Youtube /></span>
       </div>
     </footer>

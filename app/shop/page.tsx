@@ -32,7 +32,7 @@ export default async function ShopPage({
   const matchingSteps = query
     ? skincareKit.steps.filter((step) => `${step.name} ${step.product}`.toLocaleLowerCase().includes(query))
     : [];
-  const price = skincareKit.priceMinor === null ? "Price not listed" : formatPrice(skincareKit.priceMinor);
+  const price = formatPrice(skincareKit.priceMinor);
 
   return (
     <main className={`shop-page ${brandFontClassName}`}>

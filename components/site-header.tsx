@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCart } from "@/components/cart-provider";
 
 const navigation = [
@@ -13,12 +14,19 @@ const navigation = [
   { label: "About", href: "/about" },
 ];
 
+// Only real pages get a current-page state; the homepage section links (/#steps, /#how-to-use) never do.
+function isCurrent(href: string, pathname: string) {
+  if (href.includes("#")) return false;
+  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+}
+
 // Matches the CSS breakpoint where the desktop navigation is replaced by the menu button.
 const MOBILE_NAV_QUERY = "(max-width: 900px)";
 
 export default function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { itemCount } = useCart();
+  const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
@@ -56,7 +64,7 @@ export default function SiteHeader() {
       </Link>
       <nav className="desktop-nav" aria-label="Main navigation">
         {navigation.map((item) => (
-          <a key={item.label} href={item.href}>{item.label}</a>
+          <a key={item.label} href={item.href} aria-current={isCurrent(item.href, pathname) ? "page" : undefined}>{item.label}</a>
         ))}
       </nav>
       <div className="header-actions">
@@ -85,7 +93,7 @@ export default function SiteHeader() {
       {menuOpen && (
         <nav className="mobile-nav" id="mobile-navigation" aria-label="Mobile navigation">
           {navigation.map((item) => (
-            <a key={item.label} href={item.href} onClick={closeMenu}>
+            <a key={item.label} href={item.href} onClick={closeMenu} aria-current={isCurrent(item.href, pathname) ? "page" : undefined}>
               {item.label}
             </a>
           ))}

@@ -3,9 +3,8 @@
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 
-type FormKind = "contact" | "signin" | "signup" | "forgot-password" | "checkout";
-export type CheckoutField = { name: string; label?: string; type?: string; required?: boolean; autoComplete?: string; minLength?: number; value?: string };
-type Field = CheckoutField;
+type FormKind = "contact" | "signin" | "signup" | "forgot-password";
+type Field = { name: string; label: string; type?: string; autoComplete?: string; minLength?: number };
 
 const formFields: Record<FormKind, Field[]> = {
   contact: [
@@ -25,15 +24,6 @@ const formFields: Record<FormKind, Field[]> = {
     { name: "confirmPassword", label: "Confirm password", type: "password", autoComplete: "new-password", minLength: 8 },
   ],
   "forgot-password": [{ name: "email", label: "Email", type: "email", autoComplete: "email" }],
-  checkout: [
-    { name: "email", label: "Email", type: "email", autoComplete: "email" },
-    { name: "name", label: "Full name", autoComplete: "name" },
-    { name: "address", label: "Street address", autoComplete: "street-address" },
-    { name: "city", label: "City", autoComplete: "address-level2" },
-    { name: "region", label: "State or region", autoComplete: "address-level1" },
-    { name: "postalCode", label: "Postal code", autoComplete: "postal-code" },
-    { name: "country", label: "Country", autoComplete: "country-name" },
-  ],
 };
 
 const endpoints: Record<FormKind, string> = {
@@ -41,26 +31,16 @@ const endpoints: Record<FormKind, string> = {
   signin: "/api/auth/signin",
   signup: "/api/auth/signup",
   "forgot-password": "/api/auth/forgot-password",
-  checkout: "/api/checkout",
 };
 
 const setupMessages: Record<FormKind, string> = {
   contact: "Your form is valid, but contact delivery is not configured. Your message has not been sent.",
   "forgot-password": "Password recovery is not configured. No email was sent.",
-  checkout: "Checkout is not configured. No order was created and no payment was taken.",
   signin: "We could not sign you in.",
   signup: "We could not create your account.",
 };
 
-export function ServiceForm({
-  kind,
-  submitLabel,
-  fields,
-}: {
-  kind: FormKind;
-  submitLabel: string;
-  fields?: Field[];
-}) {
+export function ServiceForm({ kind, submitLabel }: { kind: FormKind; submitLabel: string }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -80,18 +60,6 @@ export function ServiceForm({
       setError("Passwords do not match.");
       return;
     }
-    if (kind === "checkout") {
-      const consent = form.querySelector<HTMLInputElement>('[name="paymentMethod"]');
-      if (!consent?.checked) {
-        setError("Select the payment setup acknowledgement to continue.");
-        return;
-      }
-      if (!Number.isInteger(data.quantity === undefined ? NaN : Number(data.quantity)) || Number(data.quantity) < 1) {
-        setError("Your cart quantity is invalid. Return to the cart and try again.");
-        return;
-      }
-    }
-
     inFlight.current = true;
     setSubmitting(true);
     let redirecting = false;
@@ -131,10 +99,7 @@ export function ServiceForm({
 
   return (
     <form className="service-form" onSubmit={handleSubmit} noValidate>
-      {(fields ?? formFields[kind]).map((field) => (
-        field.type === "hidden" ? (
-          <input key={field.name} name={field.name} type="hidden" value={field.value ?? ""} />
-        ) : (
+      {formFields[kind].map((field) => (
         <div className="form-field" key={field.name}>
           <label className="field-label" htmlFor={`${kind}-${field.name}`}>{field.label}</label>
           {field.name === "message" ? (
@@ -152,7 +117,6 @@ export function ServiceForm({
                 autoComplete={field.autoComplete}
                 minLength={field.minLength}
                 maxLength={field.name === "password" || field.name === "confirmPassword" ? 128 : 200}
-                value={field.value}
               />
               {(kind === "signin" || kind === "signup") && (field.name === "password" || field.name === "confirmPassword") && (
                 <button
@@ -167,14 +131,7 @@ export function ServiceForm({
             </div>
           )}
         </div>
-        )
       ))}
-      {kind === "checkout" && (
-        <label className="payment-choice">
-          <input name="paymentMethod" type="checkbox" required />
-          <span>Online payment is not yet available. I understand this is a setup-only checkout form.</span>
-        </label>
-      )}
       {kind === "signup" && (
         <label className="signup-terms">
           <input name="terms" type="checkbox" required />

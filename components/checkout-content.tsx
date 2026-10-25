@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft, Info } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
-import { ServiceForm, type CheckoutField } from "@/components/service-form";
+import { CheckoutForm } from "@/components/checkout-form";
 import { formatPrice, skincareKit } from "@/lib/product";
 
 export function CheckoutContent() {
@@ -20,33 +22,50 @@ export function CheckoutContent() {
     );
   }
 
-  const fields: CheckoutField[] = [
-    { name: "email", label: "Email", type: "email", autoComplete: "email" },
-    { name: "name", label: "Full name", autoComplete: "name" },
-    { name: "address", label: "Street address", autoComplete: "street-address" },
-    { name: "city", label: "City", autoComplete: "address-level2" },
-    { name: "region", label: "State or region", autoComplete: "address-level1" },
-    { name: "postalCode", label: "Postal code", autoComplete: "postal-code" },
-    { name: "country", label: "Country", autoComplete: "country-name" },
-    { name: "quantity", type: "hidden", value: String(kit.quantity) },
-    { name: "productId", type: "hidden", value: kit.productId },
-  ];
-
   return (
     <div className="checkout-layout">
-      <section className="checkout-form-panel">
-        <h2>Contact &amp; delivery</h2>
-        <p className="setup-notice">Checkout is not active: the kit price and a payment provider have not been configured. This form checks your details but cannot create an order or take payment.</p>
-        <ServiceForm kind="checkout" submitLabel="Check checkout setup" fields={fields} />
-      </section>
-      <aside className="cart-summary checkout-summary" aria-labelledby="checkout-summary-title">
+      {/* First in the DOM so phones show what's being checked out before the form; desktop places it on the right. */}
+      <aside className="checkout-summary" aria-labelledby="checkout-summary-title">
         <h2 id="checkout-summary-title">Order summary</h2>
-        <p>{kit.product.name} <span>× {kit.quantity}</span></p>
-        <p>Unit price <span>{kit.product.priceMinor === null ? "Price not listed" : formatPrice(kit.product.priceMinor)}</span></p>
-        <p>Subtotal <span>{subtotalMinor === null ? "Price not listed" : formatPrice(subtotalMinor)}</span></p>
-        <p className="cart-price-note">{subtotalMinor === null ? "Totals can't be calculated until the kit price is set." : "Payment provider setup is required."}</p>
-        <Link className="text-link" href="/cart">Return to cart</Link>
+        <div className="checkout-summary-item">
+          <div className="checkout-summary-thumb">
+            <Image src={kit.product.image} alt="" width={1024} height={1536} />
+          </div>
+          <div>
+            <p className="checkout-summary-name">
+              {kit.product.name.split(/(\S+-\S+)/).map((part, index) =>
+                index % 2 ? <span className="no-break" key={index}>{part}</span> : part,
+              )}
+            </p>
+            <p className="checkout-summary-meta">Complete 7-step routine · one kit</p>
+          </div>
+        </div>
+        <dl className="checkout-summary-rows">
+          <div><dt>Quantity</dt><dd>× {kit.quantity}</dd></div>
+          <div><dt>Unit price</dt><dd>{formatPrice(kit.product.priceMinor)}</dd></div>
+          <div className="checkout-summary-total"><dt>Subtotal</dt><dd>{formatPrice(subtotalMinor)}</dd></div>
+        </dl>
+        <p className="checkout-summary-note">
+          Subtotal for the kits only. Shipping and taxes haven&apos;t been configured, and online payment isn&apos;t
+          available yet.
+        </p>
+        <Link className="checkout-return" href="/cart"><ArrowLeft aria-hidden="true" /> Return to cart</Link>
       </aside>
+
+      <section className="checkout-form-panel" aria-labelledby="checkout-form-title">
+        <h2 id="checkout-form-title">Contact &amp; delivery</h2>
+        <div className="checkout-notice" role="note">
+          <Info aria-hidden="true" />
+          <div>
+            <p className="checkout-notice-title">Online payment isn&apos;t available yet</p>
+            <p>
+              A payment provider hasn&apos;t been connected, so this form can check your details but can&apos;t place
+              an order or take payment.
+            </p>
+          </div>
+        </div>
+        <CheckoutForm productId={kit.productId} quantity={kit.quantity} />
+      </section>
     </div>
   );
 }

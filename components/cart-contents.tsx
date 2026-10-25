@@ -81,15 +81,23 @@ export function CartContents() {
                 </Link>
                 <div className="cart-item-info">
                   <p className="eyebrow">COMPLETE 7-STEP ROUTINE</p>
-                  <h2><Link href={line.product.href}>{line.product.name}</Link></h2>
+                  {/* Hyphenated words ("7-Step") stay on one line; browsers otherwise may break the title after the hyphen. */}
+                  <h2>
+                    <Link href={line.product.href}>
+                      {line.product.name.split(/(\S+-\S+)/).map((part, index) =>
+                        index % 2 ? <span className="no-break" key={index}>{part}</span> : part,
+                      )}
+                    </Link>
+                  </h2>
                   <p>{line.product.description}</p>
-                  <p className="cart-unit-price">
-                    {line.product.priceMinor === null ? "Price not listed" : `${formatPrice(line.product.priceMinor)} each`}
-                  </p>
+                  <ul className="cart-item-steps" aria-label="Included steps">
+                    {line.product.steps.map((step) => <li key={step.number}>{step.name}</li>)}
+                  </ul>
+                  <p className="cart-unit-price">{formatPrice(line.product.priceMinor)} each</p>
                   <QuantityControl line={line} />
                 </div>
                 <div className="cart-item-actions">
-                  <p className="shop-product-price">{line.lineTotalMinor === null ? "Price not listed" : formatPrice(line.lineTotalMinor)}</p>
+                  <p className="shop-product-price">{formatPrice(line.lineTotalMinor)}</p>
                   <button
                     className="text-button cart-remove"
                     type="button"
@@ -106,15 +114,15 @@ export function CartContents() {
           </div>
           <aside className="cart-summary" aria-labelledby="cart-summary-title">
             <h2 id="cart-summary-title">Order summary</h2>
-            <p>Items <span>{itemCount}</span></p>
-            <p>Subtotal <span>{subtotalMinor === null ? "Price not listed" : formatPrice(subtotalMinor)}</span></p>
-            <p className="cart-price-note">
-              {subtotalMinor === null
-                ? "Totals can't be calculated yet because the kit price hasn't been set, and online payment isn't available."
-                : "Shipping and taxes haven't been configured, and online payment isn't available yet."}
-            </p>
-            <Link className="button button-navy" href="/checkout">Continue to Checkout</Link>
-            <Link className="button button-outline" href="/shop">Continue shopping</Link>
+            <div className="cart-summary-rows">
+              <p>Items <span>{itemCount}</span></p>
+              <p>Subtotal <span>{formatPrice(subtotalMinor)}</span></p>
+            </div>
+            <p className="cart-price-note">Shipping and taxes haven&apos;t been configured, and online payment isn&apos;t available yet.</p>
+            <div className="cart-summary-actions">
+              <Link className="button button-navy" href="/checkout">Continue to Checkout</Link>
+              <Link className="button button-outline" href="/shop">Continue shopping</Link>
+            </div>
           </aside>
         </>
       )}

@@ -20,8 +20,8 @@ type CartItem = {
 
 export type CartLine = CartItem & {
   product: typeof skincareKit;
-  /** null while the product price is not configured. */
-  lineTotalMinor: number | null;
+  /** Unit price × quantity, in paise. */
+  lineTotalMinor: number;
 };
 
 export type AddResult =
@@ -33,8 +33,8 @@ export type AddResult =
 type CartContextValue = {
   lines: CartLine[];
   itemCount: number;
-  /** null while any line's price is not configured. */
-  subtotalMinor: number | null;
+  /** Sum of the line totals, in paise. */
+  subtotalMinor: number;
   isReady: boolean;
   storageMessage: string;
   addItem: (productId: string, quantity?: number) => AddResult;
@@ -179,9 +179,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const product = getProduct(item.productId);
       return product ? [{ ...item, product, lineTotalMinor: lineTotalMinor(item.quantity) }] : [];
     });
-    const subtotalMinor = lines.some((line) => line.lineTotalMinor === null)
-      ? null
-      : lines.reduce((total, line) => total + (line.lineTotalMinor ?? 0), 0);
+    const subtotalMinor = lines.reduce((total, line) => total + line.lineTotalMinor, 0);
     return {
       lines,
       itemCount: lines.reduce((total, line) => total + line.quantity, 0),

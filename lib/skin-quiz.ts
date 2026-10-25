@@ -135,8 +135,20 @@ export const emptyQuizAnswers: QuizAnswers = {
 
 /** Completed answers for the results page. */
 export const QUIZ_STORAGE_KEY = "capsera-skin-quiz";
-/** In-progress answers and the current question, so a refresh or Back from results keeps progress. */
+/** The current attempt's answers and question, so a refresh mid-quiz keeps progress. Removed once the attempt is finished. */
 export const QUIZ_PROGRESS_KEY = "capsera-skin-quiz-progress";
+/** "Retake Quiz" opens this URL: a brand-new attempt that starts on Question 1. */
+export const QUIZ_RETAKE_PATH = "/quiz?retake=1";
+
+/** Browser-only: removes every saved trace of earlier attempts (session storage only; the cart and account are untouched). */
+export function clearSavedQuiz() {
+  try {
+    window.sessionStorage.removeItem(QUIZ_PROGRESS_KEY);
+    window.sessionStorage.removeItem(QUIZ_STORAGE_KEY);
+  } catch {
+    // Storage unavailable: nothing was saved, so there is nothing to clear.
+  }
+}
 
 export function labelFor(questionId: QuizQuestion["id"], value: string): string {
   const question = quizQuestions.find((item) => item.id === questionId);

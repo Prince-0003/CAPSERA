@@ -2,10 +2,11 @@ import Link from "next/link";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 import { CheckoutContent } from "@/components/checkout-content";
+import { brandFontClassName } from "@/lib/brand-fonts";
 
 export default function CheckoutPage() {
   return (
-    <main className="commerce-page checkout-page">
+    <main className={`commerce-page checkout-page ${brandFontClassName}`}>
       <SiteHeader />
       <div className="commerce-content">
         <nav className="breadcrumbs" aria-label="Breadcrumb">

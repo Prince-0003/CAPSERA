@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { brandFontClassName } from "@/lib/brand-fonts";
 import {
+  clearSavedQuiz,
   emptyQuizAnswers,
   isQuestionAnswered,
   isQuizComplete,
@@ -43,11 +44,20 @@ export function QuizFlow() {
   const movedByUser = useRef(false);
 
   useEffect(() => {
-    const progress = readProgress();
-    if (progress) {
+    if (new URLSearchParams(window.location.search).has("retake")) {
+      // "Retake Quiz" from the results page: a brand-new attempt on Question 1 with nothing selected.
+      clearSavedQuiz();
+      window.history.replaceState(window.history.state, "", window.location.pathname);
+      movedByUser.current = true;
       setStarted(true);
-      setStep(progress.step);
-      setAnswers(progress.answers);
+    } else {
+      // Resume an unfinished attempt (e.g. after a refresh). Finished attempts are not saved here, so they never reappear.
+      const progress = readProgress();
+      if (progress) {
+        setStarted(true);
+        setStep(progress.step);
+        setAnswers(progress.answers);
+      }
     }
     setReady(true);
   }, []);
@@ -63,10 +73,11 @@ export function QuizFlow() {
 
   // Move focus to the new question after Start / Continue / Back so keyboard and screen reader users follow along.
   useEffect(() => {
-    if (!movedByUser.current) return;
+    // Wait until the question is actually on screen (after a Retake the first render is still the loading state).
+    if (!movedByUser.current || !questionHeadingRef.current) return;
     movedByUser.current = false;
-    questionHeadingRef.current?.focus();
-  }, [started, step]);
+    questionHeadingRef.current.focus();
+  }, [ready, started, step]);
 
   const question = quizQuestions[step];
   const isLastStep = step === totalSteps - 1;
@@ -79,7 +90,12 @@ export function QuizFlow() {
   }
 
   function startQuiz() {
+    // A new attempt: forget earlier answers and results so the next results come from this attempt only.
+    clearSavedQuiz();
     movedByUser.current = true;
+    setStep(0);
+    setAnswers(emptyQuizAnswers);
+    setError("");
     setStarted(true);
   }
 
@@ -92,6 +108,8 @@ export function QuizFlow() {
     }
     try {
       window.sessionStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(answers));
+      // The attempt is finished: drop its in-progress copy so a later visit to /quiz starts fresh, not on Question 6.
+      window.sessionStorage.removeItem(QUIZ_PROGRESS_KEY);
       window.location.assign("/quiz/results");
     } catch {
       setError("Your browser could not save these answers. Please enable session storage and try again.");
@@ -162,7 +180,7 @@ export function QuizFlow() {
           <p className="ritual-quiz-hint" id={hintId}>
             {question.kind === "multiple" ? "Choose all that apply. Select again to remove a choice." : "Choose one answer."}
           </p>
-          <div className={`ritual-quiz-options${question.options.length > 6 ? " ritual-quiz-options-wide" : ""}`}>
+          <div className="ritual-quiz-options">
             {question.kind === "multiple"
               ? question.options.map((option) => (
                   <label className="ritual-option ritual-option-multi" key={option.value}>
@@ -197,9 +215,9 @@ export function QuizFlow() {
         <div className="ritual-quiz-controls">
           {step > 0 ? (
             <button className="ritual-quiz-button ritual-quiz-button-ghost" type="button" onClick={() => goTo(step - 1)}>
-              <ArrowLeft size={17} aria-hidden="true" /> Back
+              <ArrowLeft size={17} aria-hidden="true" /> <span className="ritual-quiz-back-label">Back</span>
             </button>
-          ) : <span />}
+          ) : <span className="ritual-quiz-controls-spacer" aria-hidden="true" />}
           {!isLastStep ? (
             <button className="ritual-quiz-button ritual-quiz-button-primary" type="button" onClick={() => goTo(step + 1)} disabled={!answered}>
               Continue <ArrowRight size={17} aria-hidden="true" />
@@ -210,7 +228,8 @@ export function QuizFlow() {
             </button>
           )}
         </div>
-        {!answered && <p className="ritual-quiz-status" aria-live="polite">Select an answer to continue.</p>}
+        {/* Always rendered (space reserved) so the card doesn't jump when the hint disappears; also a stable live region. */}
+        <p className="ritual-quiz-status" aria-live="polite">{answered ? "" : "Select an answer to continue."}</p>
       </section>
     </div>
   );

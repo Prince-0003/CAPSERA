@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type AnimationEvent } from "react";
 import {
   ArrowRight,
   Package,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
+import { brandFontClassName } from "@/lib/brand-fonts";
 import { skincareKit } from "@/lib/product";
 
 const steps = skincareKit.steps;
@@ -100,6 +101,30 @@ function useResetScrollOnReload() {
   }, []);
 }
 
+// Adds .is-entered once this card's own entrance animation has finished (the card's only animation), so the hover
+// lift in globals.css can never overlap the staggered slide-in. Hovering never restarts the entrance animation.
+function StepCard({ step }: { step: (typeof steps)[number] }) {
+  const [entered, setEntered] = useState(false);
+  const handleAnimationEnd = (event: AnimationEvent<HTMLElement>) => {
+    if (event.target === event.currentTarget) setEntered(true);
+  };
+
+  return (
+    <article className={`step-card card-${step.tone}${entered ? " is-entered" : ""}`} onAnimationEnd={handleAnimationEnd}>
+      <Image
+        className="step-image"
+        src={step.image}
+        alt={`${step.name} capsule`}
+        width={120}
+        height={120}
+      />
+      <p className="step-number">{step.number}</p>
+      <h3>{step.name}</h3>
+      <p className="product-name">{step.product}</p>
+    </article>
+  );
+}
+
 export default function Home() {
   useResetScrollOnReload();
   const [personalizeRef, personalizeReveal] = useScrollReveal();
@@ -130,7 +155,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section ref={personalizeRef} className="personalize section-pad" id="personalize" data-reveal={personalizeReveal}>
+      <section ref={personalizeRef} className={`personalize ${brandFontClassName}`} id="personalize" data-reveal={personalizeReveal}>
         <noscript>
           <style>{".personalize .personalize-copy *, .personalize .skin-type, .personalize .quiz-action { opacity: 1 !important; }"}</style>
         </noscript>
@@ -196,7 +221,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section ref={stepsRef} className="steps-section section-pad" id="steps" data-reveal={stepsReveal}>
+      <section ref={stepsRef} className={`steps-section section-pad ${brandFontClassName}`} id="steps" data-reveal={stepsReveal}>
         <noscript>
           <style>{".steps-section .section-heading *, .steps-section .step-card { opacity: 1 !important; }"}</style>
         </noscript>
@@ -205,24 +230,11 @@ export default function Home() {
           <h2>Simple Steps. <span>Radiant Skin.</span></h2>
         </div>
         <div className="steps-grid">
-          {steps.map((step) => (
-            <article className={`step-card card-${step.tone}`} key={step.number}>
-              <Image
-                className="step-image"
-                src={step.image}
-                alt={`${step.name} capsule`}
-                width={120}
-                height={120}
-              />
-              <p className="step-number">{step.number}</p>
-              <h3>{step.name}</h3>
-              <p className="product-name">{step.product}</p>
-            </article>
-          ))}
+          {steps.map((step) => <StepCard step={step} key={step.number} />)}
         </div>
       </section>
 
-      <section className="how-to section-pad" id="how-to-use">
+      <section className={`how-to ${brandFontClassName}`} id="how-to-use">
         <div className="how-inner">
           <div className="how-copy">
             <p className="eyebrow">YOUR DAILY RITUAL</p>

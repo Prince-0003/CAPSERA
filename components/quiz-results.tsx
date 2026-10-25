@@ -8,11 +8,12 @@ import { skincareKit } from "@/lib/product";
 import { brandFontClassName } from "@/lib/brand-fonts";
 import {
   analyzeSkinQuiz,
+  clearSavedQuiz,
   confidenceLabels,
   isQuizComplete,
   labelFor,
   parseQuizAnswers,
-  QUIZ_PROGRESS_KEY,
+  QUIZ_RETAKE_PATH,
   QUIZ_STORAGE_KEY,
   sensitivityLabels,
   skinTypeLabel,
@@ -57,13 +58,9 @@ export function QuizResults() {
   const analysis = useMemo(() => (answers ? analyzeSkinQuiz(answers) : null), [answers]);
 
   function retakeQuiz() {
-    try {
-      window.sessionStorage.removeItem(QUIZ_STORAGE_KEY);
-      window.sessionStorage.removeItem(QUIZ_PROGRESS_KEY);
-    } catch {
-      // Nothing saved to clear.
-    }
-    window.location.assign("/quiz");
+    // Clear this attempt and open the quiz on Question 1 (a full page load, so no state carries over).
+    clearSavedQuiz();
+    window.location.assign(QUIZ_RETAKE_PATH);
   }
 
   if (!ready) return <div className={`ritual-quiz ${brandFontClassName}`}><p className="ritual-quiz-loading">Loading your results…</p></div>;
