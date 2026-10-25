@@ -1,4 +1,5 @@
 import { authenticateAccount } from "@/lib/auth-store";
+import { startSession } from "@/app/_lib/session";
 import { emailField, isJsonRecord, textField } from "@/lib/request-validation";
 
 export async function POST(request: Request) {
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
     return Response.json({ message: "We could not find an account with that email and password." }, { status: 401 });
   }
 
+  await startSession(user.id);
   return Response.json(
     {
       message: "Signed in successfully.",

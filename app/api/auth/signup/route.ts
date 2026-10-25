@@ -1,4 +1,5 @@
 import { createAccount } from "@/lib/auth-store";
+import { startSession } from "@/app/_lib/session";
 import { emailField, isJsonRecord, textField } from "@/lib/request-validation";
 
 export async function POST(request: Request) {
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
 
   try {
     const user = await createAccount(name, email, password);
+    await startSession(user.id);
     return Response.json(
       {
         message: "Your account was created successfully.",
@@ -31,7 +33,10 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to create this account.";
-    return Response.json({ message }, { status: message.includes("already exists") ? 409 : 500 });
+    if (error instanceof Error && error.message.includes("already exists")) {
+      return Response.json({ message: error.message }, { status: 409 });
+    }
+    console.error("Unable to create account.", error);
+    return Response.json({ message: "Your account could not be created. Please try again." }, { status: 500 });
   }
 }

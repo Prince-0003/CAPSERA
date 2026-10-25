@@ -1,17 +1,20 @@
 import Link from "next/link";
-import { Gift, Heart, Sparkles, Truck } from "lucide-react";
+import { redirect } from "next/navigation";
+import { Heart, Layers, Sparkles, UserRound } from "lucide-react";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 import { ServiceForm } from "@/components/service-form";
+import { getSessionAccount } from "@/app/_lib/session";
 
 const benefits = [
-  { title: "Personalized Recommendations", text: "Get skincare that suits your skin.", icon: Sparkles },
-  { title: "Exclusive Offers", text: "Be the first to know about new launches and special deals.", icon: Gift },
-  { title: "Easy Order Tracking", text: "Manage your orders in one place.", icon: Truck },
+  { title: "Personalized Guidance", text: "Take the Skin Quiz to see which kit steps suit your concerns.", icon: Sparkles },
+  { title: "Seven Steps, One Kit", text: "The complete CAPSÉRA ritual, together in a single kit.", icon: Layers },
+  { title: "Your Own Account", text: "Keep your profile details in one place.", icon: UserRound },
   { title: "A Healthier, Radiant You", text: "Because great skin starts here.", icon: Heart },
 ];
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  if (await getSessionAccount()) redirect("/account");
   return (
     <main className="commerce-page signup-page">
       <SiteHeader />

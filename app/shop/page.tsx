@@ -1,16 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Check, FlaskConical, LockKeyhole, Search, Sparkles } from "lucide-react";
+import { Check, Layers, Package, Search, Sparkles } from "lucide-react";
 import AddToCartButton from "@/components/add-to-cart-button";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
-import { skincareKit } from "@/lib/product";
+import { brandFontClassName } from "@/lib/brand-fonts";
+import { formatPrice, skincareKit } from "@/lib/product";
 
 const benefits = [
-  { label: "Thoughtfully Designed Skincare", icon: Sparkles },
-  { label: "Science-Backed Formulas", icon: FlaskConical },
+  { label: "Seven Steps, One Kit", icon: Layers },
+  { label: "Thoughtfully Designed Ritual", icon: Sparkles },
   { label: "Made for Your Routine", icon: Check },
-  { label: "Secure Checkout", icon: LockKeyhole },
+  { label: "Sold as One Complete Kit", icon: Package },
 ];
 
 export default async function ShopPage({
@@ -20,14 +21,21 @@ export default async function ShopPage({
 }) {
   const { q = "" } = await searchParams;
   const query = q.trim().toLocaleLowerCase();
-  const matchesSearch = !query || [
+  // Every word of the query must appear somewhere in the kit's name, description, or step/product names.
+  const searchText = [
     skincareKit.name,
     skincareKit.description,
-    "complete seven steps skincare kit routine",
-  ].some((value) => value.toLocaleLowerCase().includes(query));
+    "complete seven 7 steps skincare kit routine ritual capsules",
+    ...skincareKit.steps.flatMap((step) => [step.name, step.product]),
+  ].join(" ").toLocaleLowerCase();
+  const matchesSearch = query.split(/\s+/).filter(Boolean).every((word) => searchText.includes(word));
+  const matchingSteps = query
+    ? skincareKit.steps.filter((step) => `${step.name} ${step.product}`.toLocaleLowerCase().includes(query))
+    : [];
+  const price = skincareKit.priceMinor === null ? "Price not listed" : formatPrice(skincareKit.priceMinor);
 
   return (
-    <main className="shop-page">
+    <main className={`shop-page ${brandFontClassName}`}>
       <SiteHeader />
       <section className="shop-hero">
         <div className="shop-hero-copy">
@@ -54,7 +62,7 @@ export default async function ShopPage({
             </div>
             <div className="filter-group">
               <h3>Price</h3>
-              <p className="filter-note">Price not listed.</p>
+              <p className="filter-note">{price}</p>
             </div>
             <div className="filter-group">
               <h3>Availability</h3>
@@ -71,10 +79,15 @@ export default async function ShopPage({
             </form>
             <div className="shop-results-heading">
               <p>THE COMPLETE ROUTINE</p>
-              <span>1 kit</span>
+              <span aria-live="polite">{matchesSearch ? "1 kit" : "0 results"}{query ? ` for “${q.trim()}”` : ""}</span>
             </div>
+            {matchingSteps.length > 0 && (
+              <p className="shop-search-note">
+                {matchingSteps.map((step) => step.product).join(", ")} {matchingSteps.length > 1 ? "are" : "is"} part of the complete kit. The capsules aren&apos;t sold separately.
+              </p>
+            )}
             {matchesSearch ? <article className="shop-product-card">
-              <a className="shop-product-image-wrap" href={skincareKit.href} aria-label={`View ${skincareKit.name}`}>
+              <Link className="shop-product-image-wrap" href={skincareKit.href} aria-label={`View ${skincareKit.name}`}>
                 <Image
                   className="shop-product-image"
                   src={skincareKit.image}
@@ -84,14 +97,27 @@ export default async function ShopPage({
                   priority
                 />
                 <span className="product-badge">THE 7-STEP KIT</span>
-              </a>
+              </Link>
               <div className="shop-product-info">
                 <p className="eyebrow">ONE COMPLETE RITUAL</p>
-                <h2>{skincareKit.name}</h2>
+                {/* Hyphenated words ("7-Step") stay on one line; browsers otherwise may break the title after the hyphen. */}
+                <h2>
+                  {skincareKit.name.split(/(\S+-\S+)/).map((part, index) =>
+                    index % 2 ? <span className="no-break" key={index}>{part}</span> : part,
+                  )}
+                </h2>
                 <p className="shop-product-description">{skincareKit.description}</p>
-                <p className="shop-product-price">Price not listed</p>
+                <ul className="shop-product-steps" aria-label="Included steps">
+                  {skincareKit.steps.map((step) => (
+                    <li key={step.number} title={`${step.number} ${step.name} · ${step.product}`}>
+                      <Image src={step.image} alt="" width={120} height={120} />
+                      <span>{step.name}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="shop-product-price">{price}</p>
                 <div className="shop-product-actions">
-                  <a className="button button-outline" href={skincareKit.href}>View Details</a>
+                  <Link className="button button-outline" href={skincareKit.href}>View Details</Link>
                   <AddToCartButton />
                 </div>
                 <p className="single-product-note">All seven steps, together as one product.</p>
@@ -100,7 +126,7 @@ export default async function ShopPage({
               <div className="empty-cart">
                 <h2>No matching skincare found.</h2>
                 <p>There is one complete kit in the CAPSÉRA collection.</p>
-                <a className="button button-outline" href="/shop">Clear search</a>
+                <Link className="button button-outline" href="/shop">Clear search</Link>
               </div>
             )}
           </div>

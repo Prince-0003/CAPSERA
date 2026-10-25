@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 type FormKind = "contact" | "signin" | "signup" | "forgot-password" | "checkout";
 export type CheckoutField = { name: string; label?: string; type?: string; required?: boolean; autoComplete?: string; minLength?: number; value?: string };
@@ -64,10 +64,13 @@ export function ServiceForm({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Guards against a second submit (double click / Enter) before the disabled state renders.
+  const inFlight = useRef(false);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (inFlight.current) return;
     setError("");
     setMessage("");
     const form = event.currentTarget;
@@ -89,31 +92,28 @@ export function ServiceForm({
       }
     }
 
+    inFlight.current = true;
     setSubmitting(true);
+    let redirecting = false;
     try {
       const response = await fetch(endpoints[kind], {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const result: { message?: string; user?: { name?: string; email?: string } } = await response.json();
+      const result: { message?: string } = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setMessage(result.message ?? setupMessages[kind]);
+        // 503 means "this service isn't configured yet" (a neutral notice); anything else is a real error.
+        if (response.status === 503) setMessage(result.message ?? setupMessages[kind]);
+        else setError(result.message ?? setupMessages[kind]);
         return;
       }
       if (kind === "signup" || kind === "signin") {
-        const user = result.user ?? {
-          name: kind === "signup" ? String(data.name ?? "") : undefined,
-          email: String(data.email ?? ""),
-        };
-
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem("capsera-account", JSON.stringify({
-            name: user.name ?? "Capséra customer",
-            email: user.email ?? "",
-          }));
-          window.location.assign("/account");
-        }
+        // The server has set an HttpOnly session cookie; drop the old client-only "session" if present.
+        window.localStorage.removeItem("capsera-account");
+        redirecting = true;
+        window.location.assign("/account");
+        return;
       }
       setMessage(result.message ?? "Request received.");
       form.reset();
@@ -121,7 +121,11 @@ export function ServiceForm({
       console.error(`Unable to submit ${kind} form.`, caught);
       setError("The request could not reach the server. Please try again.");
     } finally {
-      setSubmitting(false);
+      // Keep the button disabled while the browser navigates to the account page.
+      if (!redirecting) {
+        inFlight.current = false;
+        setSubmitting(false);
+      }
     }
   }
 

@@ -1,20 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useCart } from "@/components/cart-provider";
 import { ServiceForm, type CheckoutField } from "@/components/service-form";
-import { skincareKit } from "@/lib/product";
+import { formatPrice, skincareKit } from "@/lib/product";
 
 export function CheckoutContent() {
-  const { items, isReady } = useCart();
-  const kit = items.find((item) => item.productId === skincareKit.id);
+  const { lines, subtotalMinor, isReady } = useCart();
+  const kit = lines.find((line) => line.productId === skincareKit.id);
 
-  if (!isReady) return <p className="cart-feedback">Loading your checkout…</p>;
+  if (!isReady) return <p className="cart-feedback" role="status">Loading your checkout…</p>;
   if (!kit) {
     return (
       <div className="empty-cart">
         <h2>Your cart is empty.</h2>
         <p>Add the complete CAPSÉRA kit before continuing.</p>
-        <a className="button button-navy" href="/shop">Visit the shop</a>
+        <Link className="button button-navy" href="/shop">Visit the shop</Link>
       </div>
     );
   }
@@ -35,15 +36,16 @@ export function CheckoutContent() {
     <div className="checkout-layout">
       <section className="checkout-form-panel">
         <h2>Contact &amp; delivery</h2>
-        <p className="setup-notice">Checkout is not active: product pricing and a payment provider have not been configured. This form cannot create an order or take payment.</p>
+        <p className="setup-notice">Checkout is not active: the kit price and a payment provider have not been configured. This form checks your details but cannot create an order or take payment.</p>
         <ServiceForm kind="checkout" submitLabel="Check checkout setup" fields={fields} />
       </section>
-      <aside className="cart-summary checkout-summary">
-        <h2>Order summary</h2>
-        <p>{skincareKit.name} <span>× {kit.quantity}</span></p>
-        <p>Subtotal <span>{skincareKit.price === null ? "Price not listed" : `${skincareKit.currency} ${skincareKit.price * kit.quantity}`}</span></p>
-        <p className="cart-price-note">{skincareKit.price === null ? "Configure a kit price to calculate totals." : "Payment provider setup is required."}</p>
-        <a className="text-link" href="/cart">Return to cart</a>
+      <aside className="cart-summary checkout-summary" aria-labelledby="checkout-summary-title">
+        <h2 id="checkout-summary-title">Order summary</h2>
+        <p>{kit.product.name} <span>× {kit.quantity}</span></p>
+        <p>Unit price <span>{kit.product.priceMinor === null ? "Price not listed" : formatPrice(kit.product.priceMinor)}</span></p>
+        <p>Subtotal <span>{subtotalMinor === null ? "Price not listed" : formatPrice(subtotalMinor)}</span></p>
+        <p className="cart-price-note">{subtotalMinor === null ? "Totals can't be calculated until the kit price is set." : "Payment provider setup is required."}</p>
+        <Link className="text-link" href="/cart">Return to cart</Link>
       </aside>
     </div>
   );

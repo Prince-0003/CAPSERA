@@ -1,57 +1,23 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { UserRound } from "lucide-react";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
-
-type AccountUser = {
-  name: string;
-  email: string;
-};
+import { SignOutButton } from "@/components/sign-out-button";
+import { getSessionAccount } from "@/app/_lib/session";
 
 const navItems = [
-  { id: "overview", label: "Overview" },
-  { id: "orders", label: "Orders" },
-  { id: "addresses", label: "Addresses" },
-  { id: "personal-details", label: "Personal Details" },
-  { id: "wishlist", label: "Wishlist" },
-  { id: "settings", label: "Settings" },
+  { href: "#overview", label: "Overview" },
+  { href: "#personal-details", label: "Profile Details" },
+  { href: "#orders", label: "Orders" },
+  { href: "#skin-ritual", label: "Skin Ritual" },
 ];
 
-export default function AccountPage() {
-  const [user, setUser] = useState<AccountUser | null>(null);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem("capsera-account");
-    if (!stored) {
-      setUser(null);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored) as { name?: string; email?: string };
-      if (parsed.name && parsed.email) {
-        setUser({ name: parsed.name, email: parsed.email });
-        return;
-      }
-    } catch {
-      // Ignore invalid cached session values.
-    }
-
-    window.localStorage.removeItem("capsera-account");
-    setUser(null);
-  }, []);
-
-  const firstName = user?.name.trim().split(/\s+/)[0] ?? "there";
-
-  const signOut = () => {
-    window.localStorage.removeItem("capsera-account");
-    setUser(null);
-  };
-
-  const recentOrders: Array<{ id: string; item: string; status: string; date: string }> = [];
-  const savedAddresses: Array<{ label: string; details: string }> = [];
+export default async function AccountPage() {
+  const user = await getSessionAccount();
+  const firstName = user?.name.trim().split(/\s+/)[0] || "there";
+  const memberSince = user
+    ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric" }).format(new Date(user.createdAt))
+    : "";
 
   return (
     <main className="commerce-page account-page">
@@ -63,13 +29,11 @@ export default function AccountPage() {
               <div className="account-sidebar-heading">My Account</div>
               <nav className="account-nav" aria-label="Account navigation">
                 {navItems.map((item) => (
-                  <a key={item.id} href={`#${item.id}`} className="account-nav-link">
+                  <a key={item.href} href={item.href} className="account-nav-link">
                     {item.label}
                   </a>
                 ))}
-                <button type="button" className="account-nav-link account-nav-button" onClick={signOut}>
-                  Logout
-                </button>
+                <SignOutButton />
               </nav>
             </aside>
 
@@ -78,7 +42,7 @@ export default function AccountPage() {
                 <p className="eyebrow">YOUR CAPSÉRA ACCOUNT</p>
                 <h1>Hello, {firstName}!</h1>
                 <p className="account-welcome-message">
-                  Welcome back. Your routine, details, and saved preferences are ready whenever you are.
+                  Welcome back. Here are your account details and the quickest way back to your skincare ritual.
                 </p>
               </header>
 
@@ -86,7 +50,6 @@ export default function AccountPage() {
                 <section className="account-card account-card-wide" id="personal-details">
                   <div className="account-card-header">
                     <h2>Profile Details</h2>
-                    <a href="#personal-details">Edit</a>
                   </div>
                   <dl className="profile-list">
                     <div>
@@ -98,82 +61,31 @@ export default function AccountPage() {
                       <dd>{user.email}</dd>
                     </div>
                     <div>
-                      <dt>Account status</dt>
-                      <dd>Active</dd>
+                      <dt>Member since</dt>
+                      <dd>{memberSince}</dd>
                     </div>
                   </dl>
+                  <p className="account-card-note">Editing your profile and password isn&apos;t available yet.</p>
                 </section>
 
                 <section className="account-card" id="orders">
                   <div className="account-card-header">
-                    <h2>Recent Orders</h2>
-                    <a href="/shop">Shop now</a>
+                    <h2>Orders</h2>
                   </div>
-                  {recentOrders.length ? (
-                    <ul className="account-list">
-                      {recentOrders.map((order) => (
-                        <li key={order.id}>
-                          <div>
-                            <strong>{order.item}</strong>
-                            <span>{order.date}</span>
-                          </div>
-                          <em>{order.status}</em>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="empty-state">
-                      <p>No orders yet.</p>
-                      <a href="/shop" className="button button-navy">Browse product</a>
-                    </div>
-                  )}
+                  <div className="empty-state">
+                    <p>No orders yet. Online checkout isn&apos;t available yet, so orders can&apos;t be placed or tracked here.</p>
+                    <Link href="/shop" className="button button-navy">Browse the kit</Link>
+                  </div>
                 </section>
 
-                <section className="account-card" id="addresses">
+                <section className="account-card" id="skin-ritual">
                   <div className="account-card-header">
-                    <h2>Saved Addresses</h2>
-                    <a href="#personal-details">Add</a>
+                    <h2>Your Skin Ritual</h2>
                   </div>
-                  {savedAddresses.length ? (
-                    <ul className="account-list">
-                      {savedAddresses.map((address, index) => (
-                        <li key={`${address.label}-${index}`}>
-                          <div>
-                            <strong>{address.label}</strong>
-                            <span>{address.details}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="empty-state small">
-                      <p>No saved addresses yet.</p>
-                    </div>
-                  )}
-                </section>
-
-                <section className="account-card" id="settings">
-                  <div className="account-card-header">
-                    <h2>Account Settings</h2>
+                  <div className="empty-state">
+                    <p>Answer six questions to see which steps of the kit are most relevant to your skin.</p>
+                    <Link href="/quiz" className="button button-outline">Take the Skin Quiz</Link>
                   </div>
-                  <ul className="settings-list">
-                    <li>
-                      <span>Email preferences</span>
-                      <strong>On</strong>
-                    </li>
-                    <li>
-                      <span>Password</span>
-                      <strong>Updated</strong>
-                    </li>
-                    <li>
-                      <span>Notifications</span>
-                      <strong>Enabled</strong>
-                    </li>
-                    <li>
-                      <span>Privacy</span>
-                      <strong>Protected</strong>
-                    </li>
-                  </ul>
                 </section>
               </div>
             </div>
@@ -185,12 +97,10 @@ export default function AccountPage() {
             </div>
             <p className="eyebrow">YOUR CAPSÉRA ACCOUNT</p>
             <h1>My Account</h1>
-            <p className="setup-notice">
-              Sign in to manage your profile, orders, and addresses. Access your skincare journey, track your orders, and more.
-            </p>
+            <p className="setup-notice">Sign in to see your profile details, or create an account to get started.</p>
             <div className="account-links">
-              <a className="button button-navy" href="/signin">Sign In</a>
-              <a className="button button-outline" href="/signup">Create Account</a>
+              <Link className="button button-navy" href="/signin">Sign In</Link>
+              <Link className="button button-outline" href="/signup">Create Account</Link>
             </div>
           </section>
         )}

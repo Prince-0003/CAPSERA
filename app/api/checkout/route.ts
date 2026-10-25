@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   ) {
     return Response.json({ message: "Check your contact, delivery, and cart details." }, { status: 400 });
   }
-  if (skincareKit.price === null) {
+  if (skincareKit.priceMinor === null) {
     return Response.json(
       { message: "The kit price is not configured. No order was created and no payment was taken." },
       { status: 503 }

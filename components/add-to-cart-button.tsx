@@ -1,28 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ShoppingBag } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
-import { skincareKit } from "@/lib/product";
+import { useToast } from "@/components/toast-provider";
+import { MAX_CART_QUANTITY, skincareKit } from "@/lib/product";
 
-export default function AddToCartButton() {
-  const { addItem } = useCart();
-  const [added, setAdded] = useState(false);
+const CONFIRMATION_MS = 2000;
+
+export default function AddToCartButton({ quantity = 1, className = "button button-navy" }: { quantity?: number; className?: string }) {
+  const { addItem, isReady } = useCart();
+  const { showToast } = useToast();
+  const [justAdded, setJustAdded] = useState(false);
+  const [error, setError] = useState("");
+  const timer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   function handleAddToCart() {
-    addItem(skincareKit.id);
-    setAdded(true);
+    setError("");
+    const result = addItem(skincareKit.id, quantity);
+    if (result.status === "added") {
+      setJustAdded(true);
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setJustAdded(false), CONFIRMATION_MS);
+      showToast({
+        tone: "success",
+        message: `${skincareKit.name} added. ${result.quantity} in your cart.`,
+        action: { label: "View cart", href: "/cart" },
+      });
+    } else if (result.status === "max") {
+      setError(`Your cart already has the maximum of ${MAX_CART_QUANTITY} kits.`);
+    } else if (result.status === "not-ready") {
+      setError("Your cart is still loading. Please try again.");
+    } else {
+      setError("This product could not be added. Please refresh and try again.");
+    }
   }
 
   return (
     <div className="add-to-cart-control">
-      <button className="button button-navy" onClick={handleAddToCart}>
-        Add to Cart
+      <button
+        className={`${className} add-to-cart-button${justAdded ? " is-added" : ""}`}
+        type="button"
+        onClick={handleAddToCart}
+        disabled={!isReady}
+        aria-busy={!isReady}
+      >
+        {justAdded ? <Check aria-hidden="true" /> : <ShoppingBag aria-hidden="true" />}
+        {!isReady ? "Loading…" : justAdded ? "Added" : "Add to Cart"}
       </button>
-      {added && (
-        <p className="cart-added-message" role="status">
-          Added to your cart.
-        </p>
-      )}
+      {error && <p className="form-error" role="alert">{error}</p>}
     </div>
   );
 }

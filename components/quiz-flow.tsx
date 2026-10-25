@@ -1,57 +1,109 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { brandFontClassName } from "@/lib/brand-fonts";
+import {
+  emptyQuizAnswers,
+  isQuestionAnswered,
+  isQuizComplete,
+  parseQuizAnswers,
+  QUIZ_PROGRESS_KEY,
+  QUIZ_STORAGE_KEY,
+  quizQuestions,
+  type ConcernAnswer,
+  type QuizAnswers,
+} from "@/lib/skin-quiz";
 
-export type QuizAnswers = {
-  skinType: string;
-  concerns: string[];
-  routinePreference: string;
-  routineTime: string;
-};
+const totalSteps = quizQuestions.length;
 
-const skinTypes = ["Normal", "Oily", "Dry", "Combination", "Sensitive"];
-const concerns = ["Hydration", "Oiliness", "Uneven texture", "Breakouts", "Dull-looking skin"];
-const STORAGE_KEY = "capsera-skin-quiz";
-
-const initialAnswers: QuizAnswers = {
-  skinType: "",
-  concerns: [],
-  routinePreference: "",
-  routineTime: "",
-};
+function readProgress(): { step: number; answers: QuizAnswers } | null {
+  try {
+    const stored = window.sessionStorage.getItem(QUIZ_PROGRESS_KEY);
+    if (!stored) return null;
+    const parsed: unknown = JSON.parse(stored);
+    if (typeof parsed !== "object" || parsed === null || !("step" in parsed) || !("answers" in parsed)) return null;
+    const answers = parseQuizAnswers(parsed.answers);
+    const step = Number(parsed.step);
+    if (!answers || !Number.isInteger(step) || step < 0 || step >= totalSteps) return null;
+    return { step, answers };
+  } catch {
+    return null;
+  }
+}
 
 export function QuizFlow() {
+  const [started, setStarted] = useState(false);
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState(initialAnswers);
+  const [answers, setAnswers] = useState<QuizAnswers>(emptyQuizAnswers);
   const [error, setError] = useState("");
+  // Saved progress is read after mount so the server and first client render match.
+  const [ready, setReady] = useState(false);
+  const questionHeadingRef = useRef<HTMLHeadingElement>(null);
+  const movedByUser = useRef(false);
 
-  function nextStep() {
-    if (step === 0 && !answers.skinType) {
-      setError("Select a skin type to continue.");
-      return;
+  useEffect(() => {
+    const progress = readProgress();
+    if (progress) {
+      setStarted(true);
+      setStep(progress.step);
+      setAnswers(progress.answers);
     }
-    if (step === 1 && answers.concerns.length === 0) {
-      setError("Select at least one skin concern to continue.");
-      return;
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !started) return;
+    try {
+      window.sessionStorage.setItem(QUIZ_PROGRESS_KEY, JSON.stringify({ step, answers }));
+    } catch {
+      // Progress saving is a convenience; the quiz still works without it.
     }
+  }, [ready, started, step, answers]);
+
+  // Move focus to the new question after Start / Continue / Back so keyboard and screen reader users follow along.
+  useEffect(() => {
+    if (!movedByUser.current) return;
+    movedByUser.current = false;
+    questionHeadingRef.current?.focus();
+  }, [started, step]);
+
+  const question = quizQuestions[step];
+  const isLastStep = step === totalSteps - 1;
+  const answered = isQuestionAnswered(question, answers);
+
+  function goTo(nextStep: number) {
+    movedByUser.current = true;
     setError("");
-    setStep(step + 1);
+    setStep(nextStep);
+  }
+
+  function startQuiz() {
+    movedByUser.current = true;
+    setStarted(true);
   }
 
   function finishQuiz() {
-    if (!answers.routinePreference || !answers.routineTime) {
-      setError("Choose a routine style and a time of day to continue.");
+    if (!isQuizComplete(answers)) {
+      const firstMissing = quizQuestions.findIndex((item) => !isQuestionAnswered(item, answers));
+      goTo(firstMissing === -1 ? step : firstMissing);
+      setError("Select an answer to continue.");
       return;
     }
     try {
-      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
+      window.sessionStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(answers));
       window.location.assign("/quiz/results");
     } catch {
       setError("Your browser could not save these answers. Please enable session storage and try again.");
     }
   }
 
-  function toggleConcern(concern: string) {
+  function selectSingle(id: Exclude<keyof QuizAnswers, "concerns">, value: string) {
+    setAnswers((current) => ({ ...current, [id]: value }));
+    setError("");
+  }
+
+  function toggleConcern(concern: ConcernAnswer) {
     setAnswers((current) => ({
       ...current,
       concerns: current.concerns.includes(concern)
@@ -61,88 +113,105 @@ export function QuizFlow() {
     setError("");
   }
 
+  if (!ready) return <div className={`ritual-quiz ${brandFontClassName}`}><p className="ritual-quiz-loading">Loading the quiz…</p></div>;
+
+  if (!started) {
+    return (
+      <div className={`ritual-quiz ${brandFontClassName}`}>
+        <section className="ritual-quiz-intro" aria-labelledby="quiz-title">
+          <p className="ritual-quiz-eyebrow">YOUR SKIN, UNDERSTOOD</p>
+          <h1 id="quiz-title">Discover Your Skin Ritual</h1>
+          <p className="ritual-quiz-lead">Answer six simple questions to discover a skincare routine tailored to your skin and concerns.</p>
+          <button className="ritual-quiz-button ritual-quiz-button-primary" type="button" onClick={startQuiz}>
+            Start My Skin Quiz <ArrowRight size={17} aria-hidden="true" />
+          </button>
+          <p className="ritual-quiz-support">A personalized skincare experience in just a few steps.</p>
+          <p className="ritual-quiz-fineprint">General skincare guidance only, not medical advice.</p>
+        </section>
+      </div>
+    );
+  }
+
+  const percent = Math.round(((step + 1) / totalSteps) * 100);
+  const hintId = `${question.id}-hint`;
+
   return (
-    <section className="quiz-card" aria-labelledby="quiz-title">
-      <div className="quiz-progress">
-        <span>STEP {step + 1} OF 3</span>
-        <progress value={step + 1} max={3} aria-label={`Step ${step + 1} of 3`} />
-      </div>
-      <h1 id="quiz-title">A ritual that feels like yours</h1>
-      <p className="quiz-intro">A few simple preferences help us tailor routine guidance. This quiz is not medical advice.</p>
-
-      {step === 0 && (
-        <fieldset className="quiz-options">
-          <legend>How would you describe your skin?</legend>
-          {skinTypes.map((type) => (
-            <label className="choice-card" key={type}>
-              <input
-                type="radio"
-                name="skinType"
-                value={type}
-                checked={answers.skinType === type}
-                onChange={() => { setAnswers({ ...answers, skinType: type }); setError(""); }}
-              />
-              <span>{type}</span>
-            </label>
-          ))}
-        </fieldset>
-      )}
-
-      {step === 1 && (
-        <fieldset className="quiz-options">
-          <legend>What would you like your routine to focus on?</legend>
-          <p className="form-hint">Choose any that feel relevant.</p>
-          {concerns.map((concern) => (
-            <label className="choice-card" key={concern}>
-              <input
-                type="checkbox"
-                checked={answers.concerns.includes(concern)}
-                onChange={() => toggleConcern(concern)}
-              />
-              <span>{concern}</span>
-            </label>
-          ))}
-        </fieldset>
-      )}
-
-      {step === 2 && (
-        <fieldset className="quiz-options">
-          <legend>What fits your routine?</legend>
-          <label className="field-label" htmlFor="routine-preference">Routine style</label>
-          <select
-            id="routine-preference"
-            value={answers.routinePreference}
-            onChange={(event) => { setAnswers({ ...answers, routinePreference: event.target.value }); setError(""); }}
-            required
+    <div className={`ritual-quiz ${brandFontClassName}`}>
+      <section className="ritual-quiz-card" aria-labelledby="quiz-question">
+        <h1 className="visually-hidden">Discover Your Skin Ritual</h1>
+        <div className="ritual-quiz-progress">
+          <p className="ritual-quiz-counter">
+            <span>Question {step + 1} of {totalSteps}</span>
+            <span aria-hidden="true">{percent}%</span>
+          </p>
+          <div
+            className="ritual-quiz-track"
+            role="progressbar"
+            aria-label="Quiz progress"
+            aria-valuemin={1}
+            aria-valuemax={totalSteps}
+            aria-valuenow={step + 1}
+            aria-valuetext={`Question ${step + 1} of ${totalSteps}`}
           >
-            <option value="">Choose a routine style</option>
-            <option value="Simple and unhurried">Simple and unhurried</option>
-            <option value="A little time for each step">A little time for each step</option>
-          </select>
-          <label className="field-label" htmlFor="routine-time">When do you prefer your routine?</label>
-          <select
-            id="routine-time"
-            value={answers.routineTime}
-            onChange={(event) => { setAnswers({ ...answers, routineTime: event.target.value }); setError(""); }}
-            required
-          >
-            <option value="">Choose a time of day</option>
-            <option value="Morning">Morning</option>
-            <option value="Evening">Evening</option>
-            <option value="Morning and evening">Morning and evening</option>
-          </select>
-        </fieldset>
-      )}
+            <span style={{ width: `${percent}%` }} />
+          </div>
+        </div>
 
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="quiz-controls">
-        {step > 0 && <button className="button button-outline" type="button" onClick={() => { setError(""); setStep(step - 1); }}>Back</button>}
-        {step < 2
-          ? <button className="button button-navy" type="button" onClick={nextStep}>Next</button>
-          : <button className="button button-gold" type="button" onClick={finishQuiz}>See My Results</button>}
-      </div>
-    </section>
+        <fieldset className="ritual-quiz-question" key={question.id} aria-labelledby="quiz-question" aria-describedby={hintId}>
+          <h2 id="quiz-question" ref={questionHeadingRef} tabIndex={-1}>{question.prompt}</h2>
+          <p className="ritual-quiz-hint" id={hintId}>
+            {question.kind === "multiple" ? "Choose all that apply. Select again to remove a choice." : "Choose one answer."}
+          </p>
+          <div className={`ritual-quiz-options${question.options.length > 6 ? " ritual-quiz-options-wide" : ""}`}>
+            {question.kind === "multiple"
+              ? question.options.map((option) => (
+                  <label className="ritual-option ritual-option-multi" key={option.value}>
+                    <input
+                      type="checkbox"
+                      name={question.id}
+                      value={option.value}
+                      checked={answers.concerns.includes(option.value)}
+                      onChange={() => toggleConcern(option.value)}
+                    />
+                    <span className="ritual-option-mark" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
+                    <span className="ritual-option-label">{option.label}</span>
+                  </label>
+                ))
+              : question.options.map((option) => (
+                  <label className="ritual-option" key={option.value}>
+                    <input
+                      type="radio"
+                      name={question.id}
+                      value={option.value}
+                      checked={answers[question.id] === option.value}
+                      onChange={() => selectSingle(question.id, option.value)}
+                    />
+                    <span className="ritual-option-mark" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
+                    <span className="ritual-option-label">{option.label}</span>
+                  </label>
+                ))}
+          </div>
+        </fieldset>
+
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="ritual-quiz-controls">
+          {step > 0 ? (
+            <button className="ritual-quiz-button ritual-quiz-button-ghost" type="button" onClick={() => goTo(step - 1)}>
+              <ArrowLeft size={17} aria-hidden="true" /> Back
+            </button>
+          ) : <span />}
+          {!isLastStep ? (
+            <button className="ritual-quiz-button ritual-quiz-button-primary" type="button" onClick={() => goTo(step + 1)} disabled={!answered}>
+              Continue <ArrowRight size={17} aria-hidden="true" />
+            </button>
+          ) : (
+            <button className="ritual-quiz-button ritual-quiz-button-gold" type="button" onClick={finishQuiz} disabled={!answered}>
+              See My Results <ArrowRight size={17} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        {!answered && <p className="ritual-quiz-status" aria-live="polite">Select an answer to continue.</p>}
+      </section>
+    </div>
   );
 }
-
-export { STORAGE_KEY as QUIZ_STORAGE_KEY };

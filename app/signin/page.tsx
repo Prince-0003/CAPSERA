@@ -1,17 +1,20 @@
 import Link from "next/link";
-import { CalendarCheck2, FlaskConical, Sparkles, Smile } from "lucide-react";
+import { redirect } from "next/navigation";
+import { CalendarCheck2, Layers, Sparkles, Smile } from "lucide-react";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 import { ServiceForm } from "@/components/service-form";
+import { getSessionAccount } from "@/app/_lib/session";
 
 const benefits = [
   { label: "Thoughtfully Crafted Skincare", icon: Sparkles },
-  { label: "Science-Backed Formulas", icon: FlaskConical },
+  { label: "Seven Steps, One Kit", icon: Layers },
   { label: "Made for Your Routine", icon: CalendarCheck2 },
   { label: "A More Confident You", icon: Smile },
 ];
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  if (await getSessionAccount()) redirect("/account");
   return (
     <main className="commerce-page auth-page signin-page">
       <SiteHeader />
@@ -33,7 +36,7 @@ export default function SignInPage() {
           <section className="signin-card" aria-labelledby="signin-card-title">
             <p className="signin-card-label">SIGN IN</p>
             <h2 id="signin-card-title">Welcome Back</h2>
-            <p className="signin-card-intro">Sign in to your CAPSÉRA account to manage your orders, addresses, and more.</p>
+            <p className="signin-card-intro">Sign in to your CAPSÉRA account to see your profile and get back to your skincare ritual.</p>
             <ServiceForm kind="signin" submitLabel="Sign In" />
             <Link className="signin-forgot" href="/forgot-password">Forgot Password?</Link>
             <div className="signin-divider"><span>OR</span></div>

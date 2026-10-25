@@ -1,9 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
-import { skincareKit } from "@/lib/product";
 import { KitDetails } from "@/components/kit-details";
+import { ProductGallery } from "@/components/product-gallery";
 
 export default function SkincareKitDetailsPage() {
   return (
@@ -15,15 +14,7 @@ export default function SkincareKitDetailsPage() {
           <span aria-hidden="true">›</span><span aria-current="page">The 7-Step Kit</span>
         </nav>
         <article className="details-card">
-          <div className="details-image-wrap">
-            <Image
-              src={skincareKit.image}
-              alt={skincareKit.imageAlt}
-              width={1024}
-              height={1536}
-              priority
-            />
-          </div>
+          <ProductGallery />
           <KitDetails />
         </article>
       </div>

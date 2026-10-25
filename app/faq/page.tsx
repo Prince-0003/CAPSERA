@@ -10,7 +10,7 @@ const faqs = [
   { question: "What are the shipping and delivery policies?", answer: "Shipping regions, prices, and delivery estimates have not been configured." },
   { question: "What is the returns policy?", answer: "A returns policy has not been provided. Please configure and publish the policy before accepting orders." },
   { question: "Which payment methods do you accept?", answer: "Online payment is not configured yet, and no payment methods are currently available." },
-  { question: "How do I create or access an account?", answer: "Account authentication is not configured yet. The sign-in and sign-up pages explain the current setup status." },
+  { question: "How do I create or access an account?", answer: "Create an account on the Sign Up page, then sign in any time to see your profile. Order history isn't available yet because online checkout hasn't launched." },
 ];
 
 export default function FaqPage() {

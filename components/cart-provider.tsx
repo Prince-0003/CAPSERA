@@ -6,64 +6,112 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
-import { skincareKit } from "@/lib/product";
+import { getProduct, lineTotalMinor, MAX_CART_QUANTITY, skincareKit, type ProductId } from "@/lib/product";
 
+/** Stored cart line. Name, price, and image are read from the product catalogue so they can't go stale. */
 type CartItem = {
-  productId: typeof skincareKit.id;
+  productId: ProductId;
   quantity: number;
 };
 
+export type CartLine = CartItem & {
+  product: typeof skincareKit;
+  /** null while the product price is not configured. */
+  lineTotalMinor: number | null;
+};
+
+export type AddResult =
+  | { status: "added"; quantity: number }
+  | { status: "max"; quantity: number }
+  | { status: "not-ready" }
+  | { status: "unknown-product" };
+
 type CartContextValue = {
-  items: CartItem[];
+  lines: CartLine[];
   itemCount: number;
+  /** null while any line's price is not configured. */
+  subtotalMinor: number | null;
   isReady: boolean;
   storageMessage: string;
-  addItem: (productId: typeof skincareKit.id) => void;
-  setQuantity: (productId: typeof skincareKit.id, quantity: number) => void;
-  removeItem: (productId: typeof skincareKit.id) => void;
+  addItem: (productId: string, quantity?: number) => AddResult;
+  /** Adds one kit only if it isn't already in the cart (used by Buy Now). */
+  ensureInCart: (productId: string) => AddResult;
+  setQuantity: (productId: string, quantity: number) => boolean;
+  removeItem: (productId: string) => void;
+  getQuantity: (productId: string) => number;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "capsera-cart";
 
-function isCartItem(value: unknown): value is CartItem {
-  if (typeof value !== "object" || value === null) return false;
-  const item = value as Record<string, unknown>;
-  return (
-    item.productId === skincareKit.id &&
-    typeof item.quantity === "number" &&
-    Number.isInteger(item.quantity) &&
-    item.quantity > 0
-  );
+/** Reads saved lines, dropping unknown products and merging duplicates instead of discarding the whole cart. */
+function parseStoredCart(raw: string | null): { items: CartItem[]; recovered: boolean } {
+  if (!raw) return { items: [], recovered: false };
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed)) throw new Error("Saved cart data has an unexpected format.");
+  const quantities = new Map<ProductId, number>();
+  let recovered = false;
+  for (const entry of parsed) {
+    const record = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>) : null;
+    const product = record && typeof record.productId === "string" ? getProduct(record.productId) : null;
+    const quantity = record?.quantity;
+    if (!product || typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1) {
+      recovered = true;
+      continue;
+    }
+    if (quantities.has(product.id) || quantity > MAX_CART_QUANTITY) recovered = true;
+    quantities.set(product.id, Math.min((quantities.get(product.id) ?? 0) + quantity, MAX_CART_QUANTITY));
+  }
+  return { items: [...quantities].map(([productId, quantity]) => ({ productId, quantity })), recovered };
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [storageMessage, setStorageMessage] = useState("");
+  // Mirrors the latest cart synchronously so several updates in one event (double clicks,
+  // two buttons at once) build on each other instead of on a stale render's copy.
+  const itemsRef = useRef<CartItem[]>([]);
+  const readyRef = useRef(false);
 
   useEffect(() => {
-    try {
-      const storedItems = window.localStorage.getItem(STORAGE_KEY);
-      if (storedItems) {
-        const parsed: unknown = JSON.parse(storedItems);
-        if (!Array.isArray(parsed) || !parsed.every(isCartItem)) {
-          throw new Error("Saved cart data has an unexpected format.");
+    function load() {
+      try {
+        const { items: stored, recovered } = parseStoredCart(window.localStorage.getItem(STORAGE_KEY));
+        itemsRef.current = stored;
+        setItems(stored);
+        // Save the corrected cart so the invalid lines don't come back on the next load.
+        if (recovered) {
+          try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+          } catch {
+            // The corrected cart still works for this session.
+          }
         }
-        setItems(parsed);
+        setStorageMessage(recovered ? "Some saved cart details were invalid and have been corrected." : "");
+      } catch (error) {
+        console.error("Unable to load the saved CAPSÉRA cart.", error);
+        setStorageMessage("Your saved cart could not be loaded. You can still shop this session.");
       }
-    } catch (error) {
-      console.error("Unable to load the saved CAPSÉRA cart.", error);
-      setStorageMessage("Your saved cart could not be loaded. You can still shop this session.");
-    } finally {
-      setIsReady(true);
     }
+    load();
+    readyRef.current = true;
+    setIsReady(true);
+
+    // Keep other open tabs in sync.
+    function onStorage(event: StorageEvent) {
+      if (event.key === STORAGE_KEY || event.key === null) load();
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  const updateCart = useCallback((nextItems: CartItem[]) => {
+  const commit = useCallback((nextItems: CartItem[]) => {
+    itemsRef.current = nextItems;
     setItems(nextItems);
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextItems));
@@ -75,53 +123,78 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addItem = useCallback(
-    (productId: typeof skincareKit.id) => {
-      const existingItem = items.find((item) => item.productId === productId);
-      const nextItems = existingItem
-        ? items.map((item) =>
-            item.productId === productId
-              ? { ...item, quantity: Math.min(item.quantity + 1, 99) }
-              : item
-          )
-        : [...items, { productId, quantity: 1 }];
-      updateCart(nextItems);
+    (productId: string, quantity = 1): AddResult => {
+      if (!readyRef.current) return { status: "not-ready" };
+      const product = getProduct(productId);
+      if (!product || !Number.isInteger(quantity) || quantity < 1) return { status: "unknown-product" };
+      const current = itemsRef.current;
+      const existing = current.find((item) => item.productId === product.id);
+      const currentQuantity = existing?.quantity ?? 0;
+      if (currentQuantity >= MAX_CART_QUANTITY) return { status: "max", quantity: currentQuantity };
+      const nextQuantity = Math.min(currentQuantity + quantity, MAX_CART_QUANTITY);
+      commit(
+        existing
+          ? current.map((item) => (item.productId === product.id ? { ...item, quantity: nextQuantity } : item))
+          : [...current, { productId: product.id, quantity: nextQuantity }]
+      );
+      return { status: "added", quantity: nextQuantity };
     },
-    [items, updateCart]
+    [commit]
+  );
+
+  const ensureInCart = useCallback(
+    (productId: string): AddResult => {
+      if (!readyRef.current) return { status: "not-ready" };
+      const existing = itemsRef.current.find((item) => item.productId === productId);
+      return existing ? { status: "added", quantity: existing.quantity } : addItem(productId, 1);
+    },
+    [addItem]
   );
 
   const setQuantity = useCallback(
-    (productId: typeof skincareKit.id, quantity: number) => {
-      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-        return;
-      }
-      updateCart(
-        items.map((item) =>
-          item.productId === productId ? { ...item, quantity } : item
-        )
-      );
+    (productId: string, quantity: number) => {
+      if (!readyRef.current || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_CART_QUANTITY) return false;
+      if (!itemsRef.current.some((item) => item.productId === productId)) return false;
+      commit(itemsRef.current.map((item) => (item.productId === productId ? { ...item, quantity } : item)));
+      return true;
     },
-    [items, updateCart]
+    [commit]
   );
 
   const removeItem = useCallback(
-    (productId: typeof skincareKit.id) => {
-      updateCart(items.filter((item) => item.productId !== productId));
+    (productId: string) => {
+      if (!readyRef.current) return;
+      commit(itemsRef.current.filter((item) => item.productId !== productId));
     },
-    [items, updateCart]
+    [commit]
   );
 
-  const value = useMemo(
-    () => ({
-      items,
-      itemCount: items.reduce((total, item) => total + item.quantity, 0),
+  const getQuantity = useCallback(
+    (productId: string) => items.find((item) => item.productId === productId)?.quantity ?? 0,
+    [items]
+  );
+
+  const value = useMemo(() => {
+    const lines: CartLine[] = items.flatMap((item) => {
+      const product = getProduct(item.productId);
+      return product ? [{ ...item, product, lineTotalMinor: lineTotalMinor(item.quantity) }] : [];
+    });
+    const subtotalMinor = lines.some((line) => line.lineTotalMinor === null)
+      ? null
+      : lines.reduce((total, line) => total + (line.lineTotalMinor ?? 0), 0);
+    return {
+      lines,
+      itemCount: lines.reduce((total, line) => total + line.quantity, 0),
+      subtotalMinor,
       isReady,
       storageMessage,
       addItem,
+      ensureInCart,
       setQuantity,
       removeItem,
-    }),
-    [items, isReady, storageMessage, addItem, setQuantity, removeItem]
-  );
+      getQuantity,
+    };
+  }, [items, isReady, storageMessage, addItem, ensureInCart, setQuantity, removeItem, getQuantity]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
