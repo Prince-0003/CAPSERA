@@ -10,13 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getProduct, lineTotalMinor, MAX_CART_QUANTITY, skincareKit, type ProductId } from "@/lib/product";
-
-/** Stored cart line. Name, price, and image are read from the product catalogue so they can't go stale. */
-type CartItem = {
-  productId: ProductId;
-  quantity: number;
-};
+import { parseStoredCart, type CartItem } from "@/lib/cart";
+import { getProduct, lineTotalMinor, MAX_CART_QUANTITY, skincareKit } from "@/lib/product";
 
 export type CartLine = CartItem & {
   product: typeof skincareKit;
@@ -41,33 +36,14 @@ type CartContextValue = {
   /** Adds one kit only if it isn't already in the cart (used by Buy Now). */
   ensureInCart: (productId: string) => AddResult;
   setQuantity: (productId: string, quantity: number) => boolean;
+  /** Changes a line by `delta` from its latest saved quantity (stepper buttons). */
+  adjustQuantity: (productId: string, delta: number) => boolean;
   removeItem: (productId: string) => void;
   getQuantity: (productId: string) => number;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "capsera-cart";
-
-/** Reads saved lines, dropping unknown products and merging duplicates instead of discarding the whole cart. */
-function parseStoredCart(raw: string | null): { items: CartItem[]; recovered: boolean } {
-  if (!raw) return { items: [], recovered: false };
-  const parsed: unknown = JSON.parse(raw);
-  if (!Array.isArray(parsed)) throw new Error("Saved cart data has an unexpected format.");
-  const quantities = new Map<ProductId, number>();
-  let recovered = false;
-  for (const entry of parsed) {
-    const record = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>) : null;
-    const product = record && typeof record.productId === "string" ? getProduct(record.productId) : null;
-    const quantity = record?.quantity;
-    if (!product || typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1) {
-      recovered = true;
-      continue;
-    }
-    if (quantities.has(product.id) || quantity > MAX_CART_QUANTITY) recovered = true;
-    quantities.set(product.id, Math.min((quantities.get(product.id) ?? 0) + quantity, MAX_CART_QUANTITY));
-  }
-  return { items: [...quantities].map(([productId, quantity]) => ({ productId, quantity })), recovered };
-}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -96,6 +72,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Unable to load the saved CAPSÉRA cart.", error);
         setStorageMessage("Your saved cart could not be loaded. You can still shop this session.");
+        // Replace the unreadable value with the in-memory cart so the error is reported once, not on every load.
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(itemsRef.current));
+        } catch {
+          // Storage is unavailable; the in-memory cart still works for this session.
+        }
       }
     }
     load();
@@ -161,6 +143,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [commit]
   );
 
+  // Reads the ref, not a render's copy, so clicks that land before a re-render still add up.
+  const adjustQuantity = useCallback(
+    (productId: string, delta: number) => {
+      const existing = itemsRef.current.find((item) => item.productId === productId);
+      return existing ? setQuantity(productId, existing.quantity + delta) : false;
+    },
+    [setQuantity]
+  );
+
   const removeItem = useCallback(
     (productId: string) => {
       if (!readyRef.current) return;
@@ -189,10 +180,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       addItem,
       ensureInCart,
       setQuantity,
+      adjustQuantity,
       removeItem,
       getQuantity,
     };
-  }, [items, isReady, storageMessage, addItem, ensureInCart, setQuantity, removeItem, getQuantity]);
+  }, [items, isReady, storageMessage, addItem, ensureInCart, setQuantity, adjustQuantity, removeItem, getQuantity]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

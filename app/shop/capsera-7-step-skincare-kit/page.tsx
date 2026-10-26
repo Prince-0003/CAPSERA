@@ -3,10 +3,11 @@ import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 import { KitDetails } from "@/components/kit-details";
 import { ProductGallery } from "@/components/product-gallery";
+import { brandFontClassName } from "@/lib/brand-fonts";
 
 export default function SkincareKitDetailsPage() {
   return (
-    <main className="commerce-page product-page">
+    <main className={`commerce-page product-page ${brandFontClassName}`}>
       <SiteHeader />
       <div className="commerce-content">
         <nav className="breadcrumbs" aria-label="Breadcrumb">

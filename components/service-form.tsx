@@ -8,9 +8,9 @@ type Field = { name: string; label: string; type?: string; autoComplete?: string
 
 const formFields: Record<FormKind, Field[]> = {
   contact: [
-    { name: "name", label: "Name", autoComplete: "name" },
+    { name: "name", label: "Name", autoComplete: "name", minLength: 2 },
     { name: "email", label: "Email", type: "email", autoComplete: "email" },
-    { name: "subject", label: "Subject" },
+    { name: "subject", label: "Subject", minLength: 3 },
     { name: "message", label: "Message" },
   ],
   signin: [

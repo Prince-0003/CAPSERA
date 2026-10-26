@@ -6,17 +6,24 @@ import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart, type CartLine } from "@/components/cart-provider";
 import { useToast } from "@/components/toast-provider";
+import { parseQuantityInput } from "@/lib/cart";
 import { formatPrice, MAX_CART_QUANTITY } from "@/lib/product";
 
 function QuantityControl({ line }: { line: CartLine }) {
-  const { setQuantity } = useCart();
+  const { setQuantity, adjustQuantity } = useCart();
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState("");
   const inputId = `quantity-${line.productId}`;
 
+  function step(delta: number) {
+    setError("");
+    setDraft(null);
+    adjustQuantity(line.productId, delta);
+  }
+
   function commitDraft(value: string) {
-    const next = Number(value);
-    if (!Number.isInteger(next) || next < 1 || next > MAX_CART_QUANTITY) {
+    const next = parseQuantityInput(value);
+    if (next === null) {
       setError(`Enter a quantity from 1 to ${MAX_CART_QUANTITY}.`);
       return;
     }
@@ -29,7 +36,7 @@ function QuantityControl({ line }: { line: CartLine }) {
     <div className="cart-quantity">
       <label className="field-label" htmlFor={inputId}>Quantity</label>
       <div className="quantity-control">
-        <button type="button" aria-label="Decrease quantity" disabled={line.quantity <= 1} onClick={() => { setError(""); setDraft(null); setQuantity(line.productId, line.quantity - 1); }}>
+        <button type="button" aria-label="Decrease quantity" disabled={line.quantity <= 1} onClick={() => step(-1)}>
           <Minus aria-hidden="true" />
         </button>
         <input
@@ -45,7 +52,7 @@ function QuantityControl({ line }: { line: CartLine }) {
           onBlur={(event) => draft !== null && commitDraft(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter") commitDraft(event.currentTarget.value); }}
         />
-        <button type="button" aria-label="Increase quantity" disabled={line.quantity >= MAX_CART_QUANTITY} onClick={() => { setError(""); setDraft(null); setQuantity(line.productId, line.quantity + 1); }}>
+        <button type="button" aria-label="Increase quantity" disabled={line.quantity >= MAX_CART_QUANTITY} onClick={() => step(1)}>
           <Plus aria-hidden="true" />
         </button>
       </div>

@@ -4,6 +4,7 @@ import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 import { SignOutButton } from "@/components/sign-out-button";
 import { getSessionAccount } from "@/app/_lib/session";
+import { brandFontClassName } from "@/lib/brand-fonts";
 
 const navItems = [
   { href: "#overview", label: "Overview" },
@@ -20,7 +21,7 @@ export default async function AccountPage() {
     : "";
 
   return (
-    <main className="commerce-page account-page">
+    <main className={`commerce-page account-page ${brandFontClassName}`}>
       <SiteHeader />
       <div className="account-page-shell">
         {user ? (
