@@ -427,6 +427,7 @@ button { font: inherit; cursor: pointer; }
   position: relative;
   isolation: isolate;
   min-height: 100vh;
+  min-height: 100svh;
   background: #eef5fb;
 }
 /* Water backdrop pinned to the viewport. A fixed layer (not background-attachment: fixed, which iOS ignores and
@@ -594,8 +595,12 @@ button { font: inherit; cursor: pointer; }
   position: relative;
   isolation: isolate;
   min-height: 100vh;
+  min-height: 100svh;
   padding-top: 92px;
+  /* clip, not hidden: hidden makes <main> a scroll container, which stops the sticky columns (checkout summary,
+     product gallery, account sidebar, contact intro) from sticking. hidden stays as the fallback for old browsers. */
   overflow: hidden;
+  overflow: clip;
   background: linear-gradient(180deg, #edf5fb, #f5f8fb 460px);
 }
 .commerce-page::before {
@@ -626,6 +631,7 @@ button { font: inherit; cursor: pointer; }
   z-index: 1;
   width: 100%;
   min-height: calc(100vh - 92px);
+  min-height: calc(100svh - 92px);
   margin: 0 auto;
   padding: 52px 24px 84px;
   background-image: url("/img/account-background.png");
@@ -965,6 +971,7 @@ button { font: inherit; cursor: pointer; }
 }
 .signup-page {
   min-height: 100vh;
+  min-height: 100svh;
   padding-top: 0;
   background: var(--ice);
 }
@@ -975,6 +982,7 @@ button { font: inherit; cursor: pointer; }
   position: relative;
   z-index: 1;
   min-height: calc(100vh - 78px);
+  min-height: calc(100svh - 78px);
   padding: 122px 5.5% 78px;
   background-image: url("/img/account-background.png");
   background-size: cover;
@@ -988,6 +996,7 @@ button { font: inherit; cursor: pointer; }
   gap: clamp(44px, 8vw, 132px);
   width: min(100%, 1190px);
   min-height: min(700px, calc(100vh - 200px));
+  min-height: min(700px, calc(100svh - 200px));
   margin: 0 auto;
 }
 .signup-welcome {
@@ -1209,6 +1218,7 @@ button { font: inherit; cursor: pointer; }
 }
 .signin-page {
   min-height: 100vh;
+  min-height: 100svh;
   padding-top: 0;
   background: var(--ice);
 }
@@ -1217,6 +1227,7 @@ button { font: inherit; cursor: pointer; }
 }
 .signin-stage {
   min-height: calc(100vh - 78px);
+  min-height: calc(100svh - 78px);
   padding: 122px 5.5% 72px;
   background-image: linear-gradient(90deg, rgba(245, 246, 248, .58), rgba(245, 246, 248, .2) 54%, rgba(16, 29, 53, .12)), url("/img/account-background.png");
   background-size: cover;
@@ -1230,6 +1241,7 @@ button { font: inherit; cursor: pointer; }
   gap: clamp(56px, 9vw, 150px);
   width: min(100%, 1180px);
   min-height: min(650px, calc(100vh - 200px));
+  min-height: min(650px, calc(100svh - 200px));
   margin: 0 auto;
 }
 .signin-welcome {
@@ -1603,8 +1615,6 @@ button { font: inherit; cursor: pointer; }
 /* Checkout page (app/checkout/page.tsx, components/checkout-content.tsx, */
 /* components/checkout-form.tsx). Mobile-first, scoped to .checkout-page. */
 /* ------------------------------------------------------------------ */
-/* clip rather than hidden: hidden would make the page a scroll container and stop the summary from sticking. */
-.checkout-page { overflow: clip; }
 /* Phones/tablets: summary first (what is being checked out), then the form. 1100px+: form | summary. */
 .checkout-layout { display: grid; grid-template-areas: "summary" "form"; gap: 20px; align-items: start; }
 .checkout-form-panel, .checkout-summary { min-width: 0; border: 1px solid var(--flow-line); border-radius: 18px; background: #fff; box-shadow: var(--flow-shadow); }
@@ -1991,6 +2001,22 @@ body { font-size: 16px; }
 .product-page .kit-steps-media li { grid-template-columns: 36px 26px minmax(70px, .8fr) minmax(0, 1.2fr); }
 .product-page .kit-steps-media img { width: 34px; height: 36px; }
 .product-page .kit-steps-media li > span:first-of-type { font-size: 12px; }
+/* The step list adapts to the width it actually gets (phones, and the ~300px text column of the side-by-side
+   tablet layout), not to the viewport. */
+.product-page .product-information, .product-page .kit-steps-media { container-type: inline-size; }
+/* One column of steps in a narrow section: two columns of ~150px cards pushed "Moisturiser" and "Sunscreen"
+   past their card edges at 768px. */
+@container (max-width: 560px) {
+  .product-page .kit-steps { grid-template-columns: minmax(0, 1fr); }
+}
+/* Narrow rows: the product name moves under the step name instead of being squeezed into a fourth column
+   ("Vitamin C Serum" broke over three lines and "Moisturiser" ran into the row edge at 320px). */
+@container (max-width: 460px) {
+  .product-page .kit-steps-media li { grid-template-columns: 36px 26px minmax(0, 1fr); row-gap: 1px; }
+  .product-page .kit-steps-media li > img, .product-page .kit-steps-media li > span:first-of-type { grid-row: span 2; }
+  .product-page .kit-steps-media li > strong { align-self: end; }
+  .product-page .kit-steps-media li > span:last-child { grid-column: 3; align-self: start; }
+}
 
 /* Account */
 .account-page { --flow-heading-font: var(--font-brand-heading), "Cormorant Garamond", Georgia, serif; }
@@ -2007,6 +2033,30 @@ body { font-size: 16px; }
 .account-page .account-card .button, .account-page .account-links .button { min-height: 50px; padding: 0 26px; font-size: 12px; }
 .account-page .account-signin-prompt .setup-notice { font-size: 15px; }
 .account-page .account-card-note { font-size: 13px; }
+/* Dashboard layout: one centred container with a sidebar column and a main column. The welcome block is
+   a frosted panel at the top of the main column, so the greeting never sits directly on the bubble artwork
+   and always keeps clear space above Profile Details. Its padding matches the cards so their text aligns. */
+.account-page .account-page-shell { padding: clamp(28px, 3.5vw, 56px) clamp(16px, 4vw, 48px) clamp(56px, 6vw, 96px); }
+.account-page .account-dashboard { width: min(100%, 1240px); }
+.account-page .account-hero {
+  margin: 0 0 clamp(24px, 2.4vw, 36px);
+  padding: clamp(22px, 2.4vw, 34px) clamp(20px, 2vw, 30px);
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 18px;
+  background: linear-gradient(115deg, rgba(255, 255, 255, .84), rgba(255, 255, 255, .62));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 32px rgba(15, 30, 53, .07);
+}
+.account-page .account-hero .eyebrow { margin: 0 0 clamp(10px, 1vw, 14px); font-size: clamp(11px, .2vw + 8.5px, 12px); letter-spacing: .3em; }
+/* Long names wrap inside the panel instead of overflowing it. */
+.account-page .account-hero h1 { overflow-wrap: break-word; text-wrap: balance; }
+.account-page .account-welcome-message { max-width: 46em; margin: clamp(10px, 1vw, 14px) 0 0; line-height: 1.65; text-wrap: pretty; }
+@media (min-width: 901px) {
+  .account-page .account-dashboard { grid-template-columns: clamp(220px, 19vw, 260px) minmax(0, 1fr); }
+  /* The header scrolls away with the page, so the sidebar sticks near the top; at rest it lines up with the welcome block. */
+  .account-page .account-sidebar { top: 24px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .product-page .quantity-control button, .social-links a { transition: none; }
 }
@@ -2258,6 +2308,39 @@ body { font-size: 16px; }
   .ritual-quiz-controls .ritual-quiz-button-ghost, .ritual-quiz-controls-spacer { flex-basis: 50px; padding: 0; }
   .ritual-quiz-back-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+/* Question page only (the results page is unchanged): the quiz artwork runs behind the whole card (the opaque
+   footer covers the rest), the card is frosted glass, and the card, heading and answers are a size up. */
+.quiz-page::before {
+  height: 100%;
+  background-image: linear-gradient(180deg, rgba(245, 246, 248, .28) 0%, rgba(245, 246, 248, .46) 55%, rgba(245, 246, 248, .86) 88%, #f5f6f8 100%), url("/img/capsera-skin-quiz-bg.png");
+  background-position: center top;
+}
+/* The breadcrumb keeps the card's left edge. */
+.quiz-page .quiz-content, .quiz-page .ritual-quiz { max-width: 880px; }
+.quiz-page .ritual-quiz-card {
+  padding: clamp(24px, 4.4vw, 56px);
+  border-color: rgba(255, 255, 255, .85);
+  border-radius: 26px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .8), rgba(255, 255, 255, .66));
+  box-shadow: 0 30px 70px rgba(16, 29, 53, .14), inset 0 1px 0 rgba(255, 255, 255, .95);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.15);
+}
+.quiz-page .ritual-quiz-question { margin-bottom: 28px; }
+.quiz-page .ritual-quiz-question h2 { font-size: clamp(30px, 1.6vw + 20px, 44px); line-height: 1.12; }
+.quiz-page .ritual-quiz-hint { margin: 12px 0 26px; font-size: 15px; }
+.quiz-page .ritual-quiz-options { gap: 14px; }
+.quiz-page .ritual-option { min-height: 72px; padding: 16px 20px; background: rgba(255, 255, 255, .9); font-size: 16px; }
+/* Back / Continue sit in a footer strip at the bottom of the card. */
+.quiz-page .ritual-quiz-controls { padding-top: 24px; border-top: 1px solid var(--rq-line); }
+@media (min-width: 761px) {
+  /* Fits the longest questions (Q3, Q6), so the footer strip stays in the same place on every question. */
+  .quiz-page .ritual-quiz-card { min-height: 780px; }
+}
+@media (min-width: 600px) {
+  /* Every answer keeps the same card size, including the seventh goal on Question 6. */
+  .quiz-page .ritual-quiz-options > .ritual-option:last-child:nth-child(odd) { grid-column: auto; }
+}
 @media (prefers-reduced-motion: reduce) {
   .ritual-quiz *, .ritual-quiz *::before, .ritual-quiz *::after { animation: none !important; transition: none !important; }
 }
@@ -2300,7 +2383,10 @@ body { font-size: 16px; }
 /* Product page */
 .product-gallery { display: grid; gap: 12px; }
 .product-gallery-main { position: relative; }
-.product-gallery-caption { position: absolute; bottom: 12px; left: 50%; margin: 0; padding: 5px 12px; border-radius: 999px; color: #142544; background: #ffffffd9; font-size: 11px; letter-spacing: .06em; transform: translateX(-50%); }
+.product-gallery-caption { position: absolute; bottom: 12px; left: 50%; width: max-content; max-width: calc(100% - 24px); margin: 0; padding: 5px 12px; border-radius: 999px; color: #142544; background: #ffffffd9; font-size: 11px; letter-spacing: .06em; transform: translateX(-50%); }
+/* A band at the bottom of the image panel holds the caption, so it never sits on the artwork
+   (it used to cover the "07 Protect" capsule of the kit image). */
+.product-gallery-main.details-image-wrap { padding-bottom: 52px; }
 .product-gallery-thumbs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
 .product-gallery-thumbs button { display: grid; aspect-ratio: 1; place-items: center; padding: 4px; border: 1px solid #e0e8ef; border-radius: 8px; background: #f4f9fd; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
 .product-gallery-thumbs button.is-active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
@@ -2341,10 +2427,12 @@ body { font-size: 16px; }
 .details-copy h1 + p { margin: 10px 0 14px; }
 .quantity-control input::-webkit-outer-spin-button, .quantity-control input::-webkit-inner-spin-button { margin: 0; -webkit-appearance: none; }
 .quantity-control input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-@media (min-width: 901px) {
-  .product-gallery { position: sticky; top: 104px; }
+/* Sticky wherever the gallery sits beside the text (761px+), so the image column isn't left empty while the long
+   text column scrolls. The header scrolls away with the page (it isn't fixed), so it sticks near the top like the
+   checkout summary. Not on short screens (phones held sideways), where the gallery is taller than the window. */
+@media (min-width: 761px) and (min-height: 600px) {
+  .product-gallery { position: sticky; top: 24px; }
 }
-.product-page { overflow: clip; }
 @media (max-width: 760px) {
   .product-gallery-thumbs { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
   .product-gallery-thumbs button { padding: 2px; border-radius: 6px; }
@@ -2406,21 +2494,27 @@ body { font-size: 16px; }
   /* Touch-sized links in breadcrumbs and text links (footer links are sized in the footer block). */
   .breadcrumbs { padding: 10px 0; }
   .breadcrumbs a, .breadcrumbs [aria-current="page"] { display: inline-flex; align-items: center; min-height: 44px; }
+  /* Short crumbs ("Home", "Cart") are narrower than a fingertip; the text stays left-aligned. */
+  .breadcrumbs a { min-width: 44px; }
   .text-link, .signin-forgot { display: inline-flex; align-items: center; min-height: 44px; }
+  .form-links a { display: inline-flex; align-items: center; min-height: 44px; }
+  /* Checkbox rows: the whole label is the target (phones and tablets alike). */
+  .payment-choice, .signup-terms { min-height: 44px; align-items: center; }
+  /* The cart title link keeps its look; padding offset by negative margin gives it a 44px-tall target. */
+  .cart-item-info h2 a { display: inline-block; padding: 10px 0; margin: -10px 0; }
   .service-bar > .service-contact-link { min-height: 48px; }
   .quantity-control button { width: 44px; height: 44px; }
   .quantity-control input, .quantity-control output { height: 44px; line-height: 44px; }
   .password-toggle { width: 44px; height: 44px; right: 2px; }
   /* 16px inputs stop iOS Safari zooming the page on focus. */
   .service-form input:not([type="checkbox"]), .service-form textarea, .service-form select { min-height: 48px; font-size: 16px; }
-  .product-gallery-thumbs button { min-width: 44px; min-height: 44px; }
+  /* Swipeable thumbnail strip instead of tiny squeezed tiles: eight 44px tiles don't fit the ~300px gallery
+     column of the tablet layout (they spilled past it) or a phone screen. */
+  .product-gallery-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+  .product-gallery-thumbs button { flex: 0 0 56px; height: 56px; padding: 4px; scroll-snap-align: start; }
 }
 
 @media (max-width: 760px) {
-  /* Swipeable thumbnail strip instead of tiny squeezed tiles. */
-  .product-gallery-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; scroll-snap-type: x proximity; scrollbar-width: thin; }
-  .product-gallery-thumbs button { flex: 0 0 56px; height: 56px; padding: 4px; scroll-snap-align: start; }
-  .payment-choice, .signup-terms { min-height: 44px; align-items: center; }
   .payment-choice input, .signup-terms input { width: 20px; height: 20px; flex: none; }
 
   /* Readable minimum type on phones (was 8–10px in several sections). */
@@ -2439,4 +2533,22 @@ body { font-size: 16px; }
   .site-header { padding: 0 12px; }
   .wordmark { font-size: 19px; letter-spacing: .15em; }
   .header-actions > .header-search, .header-actions > .account-button { display: none; }
+}
+
+/* Sign-in and sign-up field labels were 10px at every width. */
+.signin-card .field-label, .signup-card .field-label { font-size: 12px; }
+
+/* Phones: 12px minimum for labels, eyebrows, badges and small buttons that were 9–11.5px. Listed with the
+   selectors that set them (same or higher specificity, later in the file) so page-specific sizes above 12px
+   keep winning. The homepage hero keeps its own type. */
+@media (max-width: 480px) {
+  .eyebrow, .personalize-copy .eyebrow, .section-heading .eyebrow, .how-copy .eyebrow, .shop-hero .eyebrow,
+  .shop-product-info .eyebrow, .cart-item-info .eyebrow, .about-page .about-story .eyebrow, .about-page .about-steps .eyebrow,
+  .account-page .account-hero .eyebrow, .contact-page .contact-intro .eyebrow,
+  .signin-eyebrow, .signup-eyebrow, .signin-card-label, .signup-card-label { font-size: 12px; }
+  .service-form .button, .auth-card .button, .order-status-card .button, .empty-cart .button { font-size: 12px; }
+  .step-number, .how-number, .filter-group h3, .shop-results-heading, .product-badge, .ritual-step-top em,
+  .signup-terms, .signin-forgot, .signin-divider, .signup-divider { font-size: 12px; }
+  .service-bar b, .service-contact-link b, .disclaimer { font-size: 12px; }
+  .shop-product-steps span { font-size: 12px; }
 }
