@@ -25,6 +25,8 @@ const MOBILE_NAV_QUERY = "(max-width: 900px)";
 
 export default function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  // The header is fixed: pages whose hero shows through it (home, shop) get the solid navy bar once scrolled.
+  const [scrolled, setScrolled] = useState(false);
   const { itemCount } = useCart();
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
@@ -55,10 +57,17 @@ export default function SiteHeader() {
     };
   }, [menuOpen]);
 
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 8);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <header className="site-header" ref={headerRef}>
+    <header className={`site-header${scrolled ? " is-scrolled" : ""}`} ref={headerRef}>
       <Link className="wordmark" href="/#home" aria-label="CAPSÉRA home">
         CAPSÉRA<span>™</span>
       </Link>

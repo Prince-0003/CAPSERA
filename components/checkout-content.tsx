@@ -65,6 +65,16 @@ export function CheckoutContent() {
           </div>
         </div>
         <CheckoutForm productId={kit.productId} quantity={kit.quantity} />
+        <div className="checkout-notice checkout-notice-end" role="note">
+          <Info aria-hidden="true" />
+          <div>
+            <p className="checkout-notice-title">College Project Notice</p>
+            <p>
+              CAPSÉRA is a college project created for educational and demonstration purposes. Orders and payments may
+              not be processed.
+            </p>
+          </div>
+        </div>
       </section>
     </div>
   );

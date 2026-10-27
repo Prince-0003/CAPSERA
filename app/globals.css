@@ -7,6 +7,8 @@
   --white: #f5f6f8;
   --ink: #142544;
   --muted: #53647d;
+  /* Height of the fixed site header (68px on phones, below); sticky columns and anchor jumps clear it. */
+  --header-height: 78px;
 }
 
 * { box-sizing: border-box; }
@@ -14,7 +16,7 @@ html { scroll-behavior: smooth; }
 body { margin: 0; color: var(--ink); background: var(--white); font-family: Arial, Helvetica, sans-serif; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; }
-.site-header { position: absolute; top: 0; left: 0; z-index: 5; width: 100%; height: 78px; padding: 0 clamp(16px, 5vw, 96px); display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: clamp(16px, 2vw, 32px); color: white; background: linear-gradient(180deg, rgba(8, 24, 45, .44), rgba(8, 24, 45, .18) 68%, transparent); }
+.site-header { position: fixed; top: 0; left: 0; z-index: 5; width: 100%; height: 78px; padding: 0 clamp(16px, 5vw, 96px); display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: clamp(16px, 2vw, 32px); color: white; background: linear-gradient(180deg, rgba(8, 24, 45, .44), rgba(8, 24, 45, .18) 68%, transparent); }
 .wordmark, .footer-wordmark { font-family: Georgia, "Times New Roman", serif; letter-spacing: .19em; font-size: 27px; white-space: nowrap; }
 .wordmark span { font: 9px Arial, sans-serif; vertical-align: top; margin-left: 3px; }
 .desktop-nav { display: flex; align-items: center; gap: clamp(20px, 2.3vw, 44px); font-size: 12px; letter-spacing: .04em; }
@@ -224,6 +226,7 @@ button { font: inherit; cursor: pointer; }
 }
 
 @media (max-width: 760px) {
+  :root { --header-height: 68px; }
   .site-header { height: 68px; }
   .wordmark { font-size: 21px; }
   .desktop-nav { display: none; }
@@ -596,7 +599,8 @@ button { font: inherit; cursor: pointer; }
   isolation: isolate;
   min-height: 100vh;
   min-height: 100svh;
-  padding-top: 92px;
+  /* Room for the fixed header (--header-height) plus 14px, at every width. */
+  padding-top: calc(var(--header-height) + 14px);
   /* clip, not hidden: hidden makes <main> a scroll container, which stops the sticky columns (checkout summary,
      product gallery, account sidebar, contact intro) from sticking. hidden stays as the fallback for old browsers. */
   overflow: hidden;
@@ -620,7 +624,10 @@ button { font: inherit; cursor: pointer; }
 .commerce-content { padding-bottom: 64px; }
 
 .account-page {
-  padding-top: 78px;
+  /* Column so the shell grows to fill the screen together with the footer (not a full screen on its own). */
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--header-height);
   background-color: #edf5fb;
 }
 .account-page::before {
@@ -629,9 +636,8 @@ button { font: inherit; cursor: pointer; }
 .account-page-shell {
   position: relative;
   z-index: 1;
+  flex: 1 0 auto;
   width: 100%;
-  min-height: calc(100vh - 92px);
-  min-height: calc(100svh - 92px);
   margin: 0 auto;
   padding: 52px 24px 84px;
   background-image: url("/img/account-background.png");
@@ -649,7 +655,7 @@ button { font: inherit; cursor: pointer; }
 }
 .account-sidebar {
   position: sticky;
-  top: 110px;
+  top: calc(var(--header-height) + 32px);
   padding: 24px 18px;
   border: 1px solid rgba(16, 29, 53, 0.12);
   border-radius: 18px;
@@ -983,7 +989,7 @@ button { font: inherit; cursor: pointer; }
   z-index: 1;
   min-height: calc(100vh - 78px);
   min-height: calc(100svh - 78px);
-  padding: 122px 5.5% 78px;
+  padding: calc(var(--header-height) + 44px) 5.5% 78px;
   background-image: url("/img/account-background.png");
   background-size: cover;
   background-position: center;
@@ -1181,7 +1187,7 @@ button { font: inherit; cursor: pointer; }
 @media (max-width: 760px) {
   .signup-stage {
     min-height: auto;
-    padding: 108px 20px 54px;
+    padding: calc(var(--header-height) + 40px) 20px 54px;
     background-image: url("/img/account-background.png");
   }
   .signup-layout {
@@ -1228,7 +1234,7 @@ button { font: inherit; cursor: pointer; }
 .signin-stage {
   min-height: calc(100vh - 78px);
   min-height: calc(100svh - 78px);
-  padding: 122px 5.5% 72px;
+  padding: calc(var(--header-height) + 44px) 5.5% 72px;
   background-image: linear-gradient(90deg, rgba(245, 246, 248, .58), rgba(245, 246, 248, .2) 54%, rgba(16, 29, 53, .12)), url("/img/account-background.png");
   background-size: cover;
   background-position: center;
@@ -1443,7 +1449,7 @@ button { font: inherit; cursor: pointer; }
 @media (max-width: 760px) {
   .signin-stage {
     min-height: auto;
-    padding: 108px 20px 54px;
+    padding: calc(var(--header-height) + 40px) 20px 54px;
     background-image: linear-gradient(180deg, rgba(245, 246, 248, .7), rgba(245, 246, 248, .82)), url("/img/account-background.png");
     background-position: center;
   }
@@ -1626,6 +1632,8 @@ button { font: inherit; cursor: pointer; }
 .checkout-notice > svg { width: 20px; height: 20px; margin-top: 2px; color: #a17c32; }
 .checkout-notice p { margin: 0; }
 .checkout-notice .checkout-notice-title { margin: 0 0 2px; color: #3a3118; font-weight: 600; }
+/* The same notice placed after the form (college project notice): spaced from the submit area instead of the form. */
+.checkout-notice.checkout-notice-end { margin: 28px 0 0; }
 
 /* Form */
 .checkout-page .checkout-form { gap: 24px; margin-top: 0; }
@@ -1691,7 +1699,7 @@ button { font: inherit; cursor: pointer; }
 @media (min-width: 1100px) {
   .checkout-layout { grid-template-columns: minmax(0, 1fr) clamp(320px, 26vw, 400px); grid-template-areas: "form summary"; gap: clamp(24px, 2.2vw, 40px); }
   /* Stays in view while the form scrolls; it can't leave the layout grid, so it never reaches the footer. */
-  .checkout-summary { position: sticky; top: 24px; }
+  .checkout-summary { position: sticky; top: calc(var(--header-height) + 24px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .checkout-page .checkout-form input:not([type="checkbox"]):not([type="hidden"]), .checkout-page .payment-choice, .checkout-return { transition: none; }
@@ -1713,10 +1721,6 @@ button { font: inherit; cursor: pointer; }
   .cart-summary { grid-row: 2; }
 }
 
-@media (max-width: 480px) {
-  .commerce-page { padding-top: 82px; }
-  .account-page { padding-top: 78px; }
-}
 
 /* Shared type scale: keep the compact premium layout while improving readability. */
 body { font-size: 16px; }
@@ -2054,8 +2058,8 @@ body { font-size: 16px; }
 .account-page .account-welcome-message { max-width: 46em; margin: clamp(10px, 1vw, 14px) 0 0; line-height: 1.65; text-wrap: pretty; }
 @media (min-width: 901px) {
   .account-page .account-dashboard { grid-template-columns: clamp(220px, 19vw, 260px) minmax(0, 1fr); }
-  /* The header scrolls away with the page, so the sidebar sticks near the top; at rest it lines up with the welcome block. */
-  .account-page .account-sidebar { top: 24px; }
+  /* The sidebar sticks just below the fixed header. */
+  .account-page .account-sidebar { top: calc(var(--header-height) + 24px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .product-page .quantity-control button, .social-links a { transition: none; }
@@ -2106,7 +2110,7 @@ body { font-size: 16px; }
 }
 @media (min-width: 960px) {
   .contact-layout { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: clamp(32px, 4.5vw, 88px); padding-top: 16px; }
-  .contact-intro { position: sticky; top: 24px; padding-top: 12px; }
+  .contact-intro { position: sticky; top: calc(var(--header-height) + 24px); padding-top: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .contact-page .service-form input, .contact-page .service-form textarea, .contact-page .service-form .button { transition: none; }
@@ -2264,7 +2268,7 @@ body { font-size: 16px; }
 .ritual-step-product { margin: 2px 0 10px; color: var(--rq-muted); font-size: 13px; font-weight: 600; }
 .ritual-step p:last-child { margin: 0; color: #42536c; font-size: 14px; line-height: 1.6; }
 .ritual-results-other { margin: 14px 0 0; color: var(--rq-muted); font-size: 14px; line-height: 1.6; }
-.ritual-routine { margin-top: 36px; padding: clamp(22px, 4vw, 36px); border: 1px solid var(--rq-line); border-radius: 20px; background: white; scroll-margin-top: 100px; animation: ritual-quiz-in .35s cubic-bezier(0.22, 1, 0.36, 1); }
+.ritual-routine { margin-top: 36px; padding: clamp(22px, 4vw, 36px); border: 1px solid var(--rq-line); border-radius: 20px; background: white; scroll-margin-top: 24px; animation: ritual-quiz-in .35s cubic-bezier(0.22, 1, 0.36, 1); }
 .ritual-routine ol { display: grid; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
 .ritual-routine-step { padding: 14px 16px; border: 1px solid var(--rq-line); border-radius: 12px; background: #f8fafc; }
 .ritual-routine-step-focus { border-color: var(--rq-gold); background: #fffaf0; }
@@ -2428,10 +2432,9 @@ body { font-size: 16px; }
 .quantity-control input::-webkit-outer-spin-button, .quantity-control input::-webkit-inner-spin-button { margin: 0; -webkit-appearance: none; }
 .quantity-control input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 /* Sticky wherever the gallery sits beside the text (761px+), so the image column isn't left empty while the long
-   text column scrolls. The header scrolls away with the page (it isn't fixed), so it sticks near the top like the
-   checkout summary. Not on short screens (phones held sideways), where the gallery is taller than the window. */
+   text column scrolls. It sticks just below the fixed header, like the checkout summary. Not on short screens (phones held sideways), where the gallery is taller than the window. */
 @media (min-width: 761px) and (min-height: 600px) {
-  .product-gallery { position: sticky; top: 24px; }
+  .product-gallery { position: sticky; top: calc(var(--header-height) + 24px); }
 }
 @media (max-width: 760px) {
   .product-gallery-thumbs { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
@@ -2587,4 +2590,20 @@ body { font-size: 16px; }
 @media (max-width: 760px) {
   .profile-form-actions .button, .account-quiz-actions .button { flex: 1 1 160px; }
   .ritual-results-save .text-button { min-height: 44px; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared header: fixed to the top of the viewport on every route.     */
+/* Each page already reserves the header's space with its own top     */
+/* padding (the header used to be an absolute overlay), so the top of */
+/* every page is unchanged; the bar now stays reachable while scrolling.*/
+/* ------------------------------------------------------------------ */
+/* Pages whose hero shows through the header (home, shop) get the solid navy bar once scrolled (SiteHeader adds
+   .is-scrolled), so the white logo and icons stay readable over light sections. Inner pages are navy already. */
+.site-header { transition: background-color .25s ease, box-shadow .25s ease; }
+.site-header.is-scrolled { background: #101d35; box-shadow: 0 6px 18px rgba(7, 21, 44, .18); }
+/* In-page links (/#steps, /#how-to-use, #personal-details…) land below the header instead of under it. */
+html { scroll-padding-top: calc(var(--header-height) + 12px); }
+@media (prefers-reduced-motion: reduce) {
+  .site-header { transition: none; }
 }
