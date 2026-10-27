@@ -137,14 +137,20 @@ export const emptyQuizAnswers: QuizAnswers = {
 export const QUIZ_STORAGE_KEY = "capsera-skin-quiz";
 /** The current attempt's answers and question, so a refresh mid-quiz keeps progress. Removed once the attempt is finished. */
 export const QUIZ_PROGRESS_KEY = "capsera-skin-quiz-progress";
+/** Whether this tab's latest results were saved to the customer's account (see app/api/quiz/results/route.ts). */
+export const QUIZ_SAVE_STATE_KEY = "capsera-skin-quiz-saved";
 /** "Retake Quiz" opens this URL: a brand-new attempt that starts on Question 1. */
 export const QUIZ_RETAKE_PATH = "/quiz?retake=1";
 
-/** Browser-only: removes every saved trace of earlier attempts (session storage only; the cart and account are untouched). */
+/**
+ * Browser-only: removes this tab's traces of earlier attempts (session storage only). Results already saved to
+ * the customer's account stay there as quiz history; the cart is untouched.
+ */
 export function clearSavedQuiz() {
   try {
     window.sessionStorage.removeItem(QUIZ_PROGRESS_KEY);
     window.sessionStorage.removeItem(QUIZ_STORAGE_KEY);
+    window.sessionStorage.removeItem(QUIZ_SAVE_STATE_KEY);
   } catch {
     // Storage unavailable: nothing was saved, so there is nothing to clear.
   }

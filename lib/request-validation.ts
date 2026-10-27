@@ -11,6 +11,11 @@ export function textField(value: unknown, minLength = 1, maxLength = 200) {
   return normalized;
 }
 
+/** Passwords are taken exactly as typed (never trimmed): spaces can be part of a password. */
+export function passwordField(value: unknown, minLength = 8, maxLength = 128) {
+  return typeof value === "string" && value.length >= minLength && value.length <= maxLength ? value : null;
+}
+
 export function emailField(value: unknown) {
   const email = textField(value, 3, 254);
   return email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;

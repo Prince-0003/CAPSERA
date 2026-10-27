@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { brandFontClassName } from "@/lib/brand-fonts";
+import { submitQuizResults } from "@/lib/quiz-record";
 import {
   clearSavedQuiz,
   emptyQuizAnswers,
@@ -10,6 +11,7 @@ import {
   isQuizComplete,
   parseQuizAnswers,
   QUIZ_PROGRESS_KEY,
+  QUIZ_SAVE_STATE_KEY,
   QUIZ_STORAGE_KEY,
   quizQuestions,
   type ConcernAnswer,
@@ -38,6 +40,7 @@ export function QuizFlow() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>(emptyQuizAnswers);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   // Saved progress is read after mount so the server and first client render match.
   const [ready, setReady] = useState(false);
   const questionHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -99,7 +102,8 @@ export function QuizFlow() {
     setStarted(true);
   }
 
-  function finishQuiz() {
+  async function finishQuiz() {
+    if (submitting) return;
     if (!isQuizComplete(answers)) {
       const firstMissing = quizQuestions.findIndex((item) => !isQuestionAnswered(item, answers));
       goTo(firstMissing === -1 ? step : firstMissing);
@@ -108,12 +112,28 @@ export function QuizFlow() {
     }
     try {
       window.sessionStorage.setItem(QUIZ_STORAGE_KEY, JSON.stringify(answers));
-      // The attempt is finished: drop its in-progress copy so a later visit to /quiz starts fresh, not on Question 6.
-      window.sessionStorage.removeItem(QUIZ_PROGRESS_KEY);
-      window.location.assign("/quiz/results");
     } catch {
       setError("Your browser could not save these answers. Please enable session storage and try again.");
+      return;
     }
+    setError("");
+    setSubmitting(true);
+    // The server validates the answers and, for a signed-in customer, saves the result to their account.
+    const outcome = await submitQuizResults(answers);
+    if ("invalid" in outcome) {
+      setError(outcome.invalid);
+      setSubmitting(false);
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(QUIZ_SAVE_STATE_KEY, JSON.stringify(outcome));
+      // The attempt is finished: drop its in-progress copy so a later visit to /quiz starts fresh, not on Question 6.
+      window.sessionStorage.removeItem(QUIZ_PROGRESS_KEY);
+    } catch {
+      // The results page still works from the saved answers.
+    }
+    // Keep the button disabled while the browser opens the results.
+    window.location.assign("/quiz/results");
   }
 
   function selectSingle(id: Exclude<keyof QuizAnswers, "concerns">, value: string) {
@@ -223,8 +243,8 @@ export function QuizFlow() {
               Continue <ArrowRight size={17} aria-hidden="true" />
             </button>
           ) : (
-            <button className="ritual-quiz-button ritual-quiz-button-gold" type="button" onClick={finishQuiz} disabled={!answered}>
-              See My Results <ArrowRight size={17} aria-hidden="true" />
+            <button className="ritual-quiz-button ritual-quiz-button-gold" type="button" onClick={finishQuiz} disabled={!answered || submitting} aria-busy={submitting}>
+              {submitting ? "Preparing your results…" : <>See My Results <ArrowRight size={17} aria-hidden="true" /></>}
             </button>
           )}
         </div>

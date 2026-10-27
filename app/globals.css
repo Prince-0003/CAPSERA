@@ -2552,3 +2552,39 @@ body { font-size: 16px; }
   .service-bar b, .service-contact-link b, .disclaimer { font-size: 12px; }
   .shop-product-steps span { font-size: 12px; }
 }
+
+
+/* ------------------------------------------------------------------ */
+/* Customer accounts (Supabase): profile editing, saved quiz results,  */
+/* auth notices. Reuses the account card and service-form styles.      */
+/* ------------------------------------------------------------------ */
+.auth-card-intro { margin: 0; color: #4a5c75; font-size: 15px; line-height: 1.65; }
+.auth-card .input-shell input:not([type="checkbox"]) { padding-right: 46px; padding-left: 42px; }
+.auth-link-notice { margin: 0 0 4px; }
+.form-inline-action { justify-self: start; min-height: 44px; color: #8a6a26; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.account-notice { margin-top: 14px; }
+.account-card-action { min-height: 44px; padding: 0 4px; color: #365274; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.account-card-action:hover { color: #a17c32; }
+.account-card-note a, .ritual-results-save a { color: #8a6a26; text-decoration: underline; text-underline-offset: 3px; }
+.profile-form { margin-top: 0; }
+.profile-form-hint { margin: 0; color: #607089; font-size: 13px; line-height: 1.5; }
+.profile-form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.profile-form-actions .button { min-width: 0; }
+.profile-status { margin-top: 14px; }
+.account-quiz { display: grid; gap: 14px; }
+.account-quiz-date { margin: 0; color: #607089; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+.account-quiz-facts { display: grid; gap: 10px; margin: 0; }
+.account-quiz-facts div { display: grid; gap: 2px; }
+.account-quiz-facts dt { color: #607089; font-size: 12px; }
+.account-quiz-facts dd { margin: 0; color: #101d35; font-size: 15px; font-weight: 600; }
+.account-quiz-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.account-quiz-history-title { margin: 6px 0 0; color: #101d35; font: 400 1.05rem/1.2 Georgia, "Times New Roman", serif; }
+.account-quiz-history a { display: inline-flex; align-items: center; min-height: 44px; color: #365274; font-size: 13px; font-weight: 600; }
+.ritual-results-save { margin: 18px 0 0; padding: 12px 16px; border: 1px solid var(--rq-line, rgba(16, 29, 53, .12)); border-radius: 12px; color: var(--rq-muted, #56667d); background: rgba(255, 255, 255, .7); font-size: 14px; line-height: 1.6; }
+.ritual-results-save.is-saved { border-color: rgba(49, 94, 74, .25); color: #2d5a45; background: rgba(236, 248, 241, .8); }
+.ritual-results-save p { margin: 0; }
+.ritual-results-save .text-button { color: #8a6a26; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+@media (max-width: 760px) {
+  .profile-form-actions .button, .account-quiz-actions .button { flex: 1 1 160px; }
+  .ritual-results-save .text-button { min-height: 44px; }
+}

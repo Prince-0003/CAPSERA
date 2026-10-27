@@ -1,4 +1,4 @@
-import { Instagram, Youtube } from "lucide-react";
+import { Instagram } from "lucide-react";
 import Link from "next/link";
 
 const footerLinks = [
@@ -27,7 +27,6 @@ export default function SiteFooter() {
         <a href="https://www.instagram.com/capsera.care/" target="_blank" rel="noopener noreferrer" aria-label="CAPSÉRA on Instagram (opens in a new tab)">
           <Instagram aria-hidden="true" />
         </a>
-        <span role="img" aria-label="YouTube"><Youtube /></span>
       </div>
     </footer>
   );

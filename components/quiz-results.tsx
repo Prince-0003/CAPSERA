@@ -4,16 +4,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, RotateCcw, ShieldAlert } from "lucide-react";
 import AddToCartButton from "@/components/add-to-cart-button";
-import { skincareKit } from "@/lib/product";
+import { getProduct, skincareKit } from "@/lib/product";
 import { brandFontClassName } from "@/lib/brand-fonts";
+import { parseCompletedAnswers, recommendProducts, submitQuizResults, UUID_PATTERN, type QuizSaveState } from "@/lib/quiz-record";
 import {
   analyzeSkinQuiz,
   clearSavedQuiz,
   confidenceLabels,
-  isQuizComplete,
   labelFor,
-  parseQuizAnswers,
   QUIZ_RETAKE_PATH,
+  QUIZ_SAVE_STATE_KEY,
   QUIZ_STORAGE_KEY,
   sensitivityLabels,
   skinTypeLabel,
@@ -28,26 +28,130 @@ const relevanceLabels: Record<StepRelevance, string> = {
   supporting: "Also in your kit",
 };
 const confidenceLevel: Record<Confidence, number> = { low: 1, medium: 2, high: 3 };
+const SAVE_AFTER_SIGN_IN = "/quiz/results?save=1";
+
+type LoadProblem = "signed-out" | "not-found" | "error" | null;
+
+function readSaveState(): QuizSaveState | null {
+  try {
+    const value: unknown = JSON.parse(window.sessionStorage.getItem(QUIZ_SAVE_STATE_KEY) ?? "null");
+    if (typeof value !== "object" || value === null) return null;
+    const state = value as Record<string, unknown>;
+    if (state.saved === true && typeof state.id === "string" && typeof state.createdAt === "string") return { saved: true, id: state.id, createdAt: state.createdAt };
+    if (state.saved === false) return { saved: false, reason: state.reason === "signed-out" ? "signed-out" : "error" };
+  } catch {
+    // Unreadable state: treated as "not saved yet".
+  }
+  return null;
+}
+
+function rememberSaveState(state: QuizSaveState) {
+  try {
+    window.sessionStorage.setItem(QUIZ_SAVE_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Only affects the notice after a refresh.
+  }
+}
+
+/** A saved result of the signed-in customer (by id, or the latest), loaded through /api/quiz/results. */
+async function loadSavedResult(id: string | null): Promise<{ answers: CompletedQuizAnswers; id: string; createdAt: string } | LoadProblem> {
+  const response = await fetch(id ? `/api/quiz/results?id=${encodeURIComponent(id)}` : "/api/quiz/results", { cache: "no-store" });
+  if (response.status === 401) return "signed-out";
+  if (response.status === 404 || response.status === 400) return "not-found";
+  if (!response.ok) return "error";
+  const result: Record<string, unknown> = await response.json().catch(() => ({}));
+  const answers = parseCompletedAnswers(result.answers);
+  return answers && typeof result.id === "string" && typeof result.createdAt === "string"
+    ? { answers, id: result.id, createdAt: result.createdAt }
+    : "error";
+}
+
+const formatDate = (iso: string) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric" }).format(new Date(iso));
 
 export function QuizResults() {
   const [answers, setAnswers] = useState<CompletedQuizAnswers | null>(null);
   const [ready, setReady] = useState(false);
+  const [problem, setProblem] = useState<LoadProblem>(null);
+  const [saveState, setSaveState] = useState<QuizSaveState | null>(null);
+  const [saving, setSaving] = useState(false);
   const [showRoutine, setShowRoutine] = useState(false);
   const routineRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    try {
-      const stored = window.sessionStorage.getItem(QUIZ_STORAGE_KEY);
-      if (stored) {
-        const parsed = parseQuizAnswers(JSON.parse(stored), { requireComplete: true });
-        if (parsed && isQuizComplete(parsed)) setAnswers(parsed);
+    let cancelled = false;
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("id");
+      try {
+        // 1. A saved result opened from the account page (?id=…).
+        if (id !== null) {
+          const saved = UUID_PATTERN.test(id) ? await loadSavedResult(id) : "not-found";
+          if (cancelled) return;
+          if (typeof saved === "object" && saved) {
+            setAnswers(saved.answers);
+            setSaveState({ saved: true, id: saved.id, createdAt: saved.createdAt });
+          } else {
+            setProblem(saved);
+          }
+          return;
+        }
+        // 2. This tab's latest attempt.
+        const stored = window.sessionStorage.getItem(QUIZ_STORAGE_KEY);
+        const current = stored ? parseCompletedAnswers(JSON.parse(stored)) : null;
+        if (current) {
+          setAnswers(current);
+          let state = readSaveState();
+          // Back from "Sign in to save": save this attempt to the account now.
+          if (params.has("save") && !state?.saved) {
+            window.history.replaceState(window.history.state, "", window.location.pathname);
+            setSaving(true);
+            const outcome = await submitQuizResults(current);
+            if (cancelled) return;
+            setSaving(false);
+            if (!("invalid" in outcome)) {
+              state = outcome;
+              rememberSaveState(outcome);
+            }
+          }
+          setSaveState(state);
+          return;
+        }
+        // 3. Nothing in this tab (new tab, other device): a signed-in customer sees their latest saved result.
+        const latest = await loadSavedResult(null);
+        if (cancelled) return;
+        if (typeof latest === "object" && latest) {
+          setAnswers(latest.answers);
+          setSaveState({ saved: true, id: latest.id, createdAt: latest.createdAt });
+        }
+      } catch (error) {
+        console.error("Unable to load the quiz results.", error);
+        if (!cancelled && id !== null) setProblem("error");
+      } finally {
+        if (!cancelled) setReady(true);
       }
-    } catch (error) {
-      console.error("Unable to read the saved quiz answers.", error);
-    } finally {
-      setReady(true);
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  async function saveToAccount() {
+    if (!answers || saving) return;
+    setSaving(true);
+    const outcome = await submitQuizResults(answers);
+    setSaving(false);
+    if ("invalid" in outcome) {
+      setSaveState({ saved: false, reason: "error", message: outcome.invalid });
+      return;
+    }
+    if (!outcome.saved && outcome.reason === "signed-out") {
+      // Sign in (or create an account), then come back here and save automatically.
+      window.location.assign(`/signin?next=${encodeURIComponent(SAVE_AFTER_SIGN_IN)}`);
+      return;
+    }
+    setSaveState(outcome);
+    rememberSaveState(outcome);
+  }
 
   useEffect(() => {
     if (!showRoutine) return;
@@ -65,18 +169,35 @@ export function QuizResults() {
 
   if (!ready) return <div className={`ritual-quiz ${brandFontClassName}`}><p className="ritual-quiz-loading">Loading your results…</p></div>;
   if (!analysis) {
+    const savedLink = problem !== null;
+    const heading = problem === "signed-out" ? "Sign in to see this saved result."
+      : problem === "not-found" ? "We couldn't find that saved result."
+      : problem === "error" ? "Your saved results couldn't be loaded."
+      : "Your results are not available yet.";
+    const lead = problem === "signed-out" ? "Saved quiz results are private to your account."
+      : problem === "error" ? "Please try again in a moment, or take the quiz again."
+      : "Complete the six-question skin quiz to see guidance based on your answers.";
     return (
       <div className={`ritual-quiz ${brandFontClassName}`}>
         <section className="ritual-quiz-intro">
           <p className="ritual-quiz-eyebrow">YOUR PERSONALIZED SKIN RITUAL</p>
-          <h1>Your results are not available yet.</h1>
-          <p className="ritual-quiz-lead">Complete the six-question skin quiz to see guidance based on your answers.</p>
-          <Link className="ritual-quiz-button ritual-quiz-button-primary" href="/quiz">Take the quiz <ArrowRight size={17} aria-hidden="true" /></Link>
+          <h1>{heading}</h1>
+          <p className="ritual-quiz-lead">{lead}</p>
+          {problem === "signed-out" ? (
+            <Link className="ritual-quiz-button ritual-quiz-button-primary" href={`/signin?next=${encodeURIComponent(`/quiz/results${window.location.search}`)}`}>
+              Sign in <ArrowRight size={17} aria-hidden="true" />
+            </Link>
+          ) : (
+            <Link className="ritual-quiz-button ritual-quiz-button-primary" href="/quiz">Take the quiz <ArrowRight size={17} aria-hidden="true" /></Link>
+          )}
+          {savedLink && <p className="ritual-quiz-support"><Link href="/account#skin-ritual">Back to your account</Link></p>}
         </section>
       </div>
     );
   }
 
+  const [recommendation] = recommendProducts(analysis);
+  const recommendedProduct = getProduct(recommendation.productId) ?? skincareKit;
   const keySteps = analysis.steps.filter((step) => step.relevance !== "supporting");
   const otherSteps = analysis.steps.filter((step) => step.relevance === "supporting");
   const primaryConcern = labelFor("concerns", analysis.primaryConcern);
@@ -91,6 +212,24 @@ export function QuizResults() {
         <h1 id="results-title">{headline}</h1>
         <p className="ritual-quiz-lead">{analysis.summary}</p>
       </section>
+
+      <div className={`ritual-results-save${saveState?.saved ? " is-saved" : ""}`} role="status" aria-live="polite">
+        {saving ? (
+          <p>Saving these results to your account…</p>
+        ) : saveState?.saved ? (
+          <p>Saved to your account on {formatDate(saveState.createdAt)}. <Link href="/account#skin-ritual">See your quiz history</Link></p>
+        ) : saveState?.reason === "error" ? (
+          <p>
+            {saveState.message ?? "We couldn't save these results to your account."}{" "}
+            <button className="text-button" type="button" onClick={saveToAccount}>Try again</button>
+          </p>
+        ) : (
+          <p>
+            These results are kept only in this browser tab.{" "}
+            <button className="text-button" type="button" onClick={saveToAccount}>Save them to your account</button>
+          </p>
+        )}
+      </div>
 
       <dl className="ritual-results-stats">
         <div>
@@ -141,7 +280,7 @@ export function QuizResults() {
 
       <section className="ritual-results-steps" aria-labelledby="steps-title">
         <h2 id="steps-title">Your most relevant steps</h2>
-        <p className="ritual-results-subtitle">All seven steps come together in one {skincareKit.name}; the capsules aren&apos;t sold separately.</p>
+        <p className="ritual-results-subtitle">{recommendation.reason}</p>
         <ol className="ritual-step-grid">
           {keySteps.map((step) => (
             <li key={step.number} className={`ritual-step ritual-step-${step.relevance}`}>
@@ -187,7 +326,7 @@ export function QuizResults() {
       )}
 
       <div className="ritual-results-actions">
-        <Link className="ritual-quiz-button ritual-quiz-button-gold" href={skincareKit.href}>
+        <Link className="ritual-quiz-button ritual-quiz-button-gold" href={recommendedProduct.href}>
           Shop the Complete Kit <ArrowRight size={17} aria-hidden="true" />
         </Link>
         <button

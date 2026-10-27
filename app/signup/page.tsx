@@ -4,17 +4,17 @@ import { Heart, Layers, Sparkles, UserRound } from "lucide-react";
 import SiteFooter from "@/components/site-footer";
 import SiteHeader from "@/components/site-header";
 import { ServiceForm } from "@/components/service-form";
-import { getSessionAccount } from "@/app/_lib/session";
+import { getCurrentUser } from "@/lib/supabase/server";
 
 const benefits = [
   { title: "Personalized Guidance", text: "Take the Skin Quiz to see which kit steps suit your concerns.", icon: Sparkles },
   { title: "Seven Steps, One Kit", text: "The complete CAPSÉRA ritual, together in a single kit.", icon: Layers },
-  { title: "Your Own Account", text: "Keep your profile details in one place.", icon: UserRound },
+  { title: "Your Own Account", text: "Keep your profile details and skin quiz results in one place.", icon: UserRound },
   { title: "A Healthier, Radiant You", text: "Because great skin starts here.", icon: Heart },
 ];
 
 export default async function SignUpPage() {
-  if (await getSessionAccount()) redirect("/account");
+  if ((await getCurrentUser()).user) redirect("/account");
   return (
     <main className="commerce-page signup-page">
       <SiteHeader />

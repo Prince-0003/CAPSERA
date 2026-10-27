@@ -1,6 +1,8 @@
-import { authenticateAccount } from "@/lib/auth-store";
-import { startSession } from "@/app/_lib/session";
-import { emailField, isJsonRecord, textField } from "@/lib/request-validation";
+import { describeAuthError } from "@/lib/auth/errors";
+import { safeNextPath } from "@/lib/auth/redirects";
+import { emailField, isJsonRecord, passwordField } from "@/lib/request-validation";
+import { accountsNotConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -15,23 +17,22 @@ export async function POST(request: Request) {
   }
 
   const email = emailField(body.email);
-  const password = textField(body.password, 8, 128);
+  const password = passwordField(body.password, 1);
 
   if (!email || !password) {
     return Response.json({ message: "Enter a valid email and password." }, { status: 400 });
   }
 
-  const user = await authenticateAccount(email, password);
-  if (!user) {
-    return Response.json({ message: "We could not find an account with that email and password." }, { status: 401 });
+  const supabase = await createClient();
+  if (!supabase) return accountsNotConfigured();
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    const failure = describeAuthError(error, "signin");
+    if (failure.status >= 500) console.error("Supabase sign-in failed.", error.code, error.status);
+    return Response.json({ message: failure.message, code: failure.code }, { status: failure.status });
   }
 
-  await startSession(user.id);
-  return Response.json(
-    {
-      message: "Signed in successfully.",
-      user: { name: user.name, email: user.email },
-    },
-    { status: 200 }
-  );
+  // The session cookies were set by the server client; the form continues to the requested page.
+  return Response.json({ message: "Signed in successfully.", redirectTo: safeNextPath(body.next) }, { status: 200 });
 }
